@@ -488,63 +488,7 @@ window.TEAM_OVERRIDES = {
    ]
   }
  },
- "newMembers": [
-  {
-   "name": "批量甲",
-   "college": "林学院",
-   "major": "林学2101",
-   "grade": "2023",
-   "sex": "男",
-   "level": [
-    "正式"
-   ],
-   "addedAt": "2026-09-14"
-  },
-  {
-   "name": "批量乙",
-   "college": "园艺学院",
-   "major": "园艺2102",
-   "grade": "2023",
-   "sex": "女",
-   "level": [
-    "预备"
-   ],
-   "addedAt": "2026-09-14"
-  },
-  {
-   "name": "批量丙",
-   "college": "水建学院",
-   "major": "水利2103",
-   "grade": "2024",
-   "sex": "男",
-   "level": [
-    "正式"
-   ],
-   "addedAt": "2026-09-14"
-  },
-  {
-   "name": "文件甲",
-   "college": "动科学院",
-   "major": "动科2101",
-   "grade": "2023",
-   "sex": "男",
-   "level": [
-    "正式"
-   ],
-   "addedAt": "2026-09-14"
-  },
-  {
-   "name": "文件乙",
-   "college": "食品学院",
-   "major": "食工2102",
-   "grade": "2024",
-   "sex": "女",
-   "level": [
-    "预备"
-   ],
-   "addedAt": "2026-09-14"
-  }
- ],
+ "newMembers": [],
  "results": [
   {
    "uid": "rmu114vax_1_vq0n",
