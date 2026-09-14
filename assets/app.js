@@ -1706,7 +1706,7 @@ function ghHeaders(cfg) {
 }
 
 async function ghGetSha(cfg, path) {
-  const r = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}?ref=${encodeURIComponent(cfg.branch || 'main')}`, { headers: ghHeaders(cfg), cache: 'no-store' });
+  const r = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}?ref=${encodeURIComponent(cfg.branch || 'master')}`, { headers: ghHeaders(cfg), cache: 'no-store' });
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('读取 ' + path + ' 失败 ' + r.status);
   return (await r.json()).sha;
@@ -1719,8 +1719,32 @@ async function ghPut(cfg, path, b64, message) {
   const r = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}`, {
     method: 'PUT', headers: ghHeaders(cfg), body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error('写入 ' + path + ' 失败 ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  if (!r.ok) {
+    let msg = await r.text();
+    if (/Branch .* not found/i.test(msg)) {          // 分支名不对 → 换一个再试
+      const alt = (cfg.branch === 'main') ? 'master' : 'main';
+      body.branch = alt;
+      const r2 = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}`, {
+        method: 'PUT', headers: ghHeaders(cfg), body: JSON.stringify(body),
+      });
+      if (r2.ok) { cfg.branch = alt; lsSet(LS_CFG, cfg); return r2.json(); }
+      msg = await r2.text();
+    }
+    throw new Error('写入 ' + path + ' 失败 ' + r.status + ' ' + msg.slice(0, 140));
+  }
   return r.json();
+}
+
+/** 自动问 GitHub：这个仓库的默认分支叫什么（避免 main/master 填错） */
+async function ghRealBranch(cfg) {
+  try {
+    const r = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}`, { headers: ghHeaders(cfg), cache: 'no-store' });
+    if (r.ok) {
+      const d = await r.json();
+      if (d && d.default_branch) return d.default_branch;
+    }
+  } catch (e) {}
+  return cfg.branch || 'master';
 }
 
 async function pushToGitHub() {
@@ -1728,6 +1752,8 @@ async function pushToGitHub() {
   if (!cfg.token) return toast('还没填「访问令牌」：数据管理 → 同步 → 粘上 github_pat_... → 点保存设置', 6000);
   const l = LOCAL_OV || {};
   if (!pendingCount()) return toast('没有需要同步的修改');
+  cfg.branch = await ghRealBranch(cfg);   // 用仓库真实的分支（main / master 自动认）
+  lsSet(LS_CFG, cfg);                     // 顺便把正确的分支存回去
   await loadCloud(true);            // 先拉一次最新的云端数据，避免把别人刚提交的覆盖掉
   const btn = $('#btnPush');
   if (btn) { btn.disabled = true; btn.textContent = '正在同步…'; }
