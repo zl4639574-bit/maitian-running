@@ -186,7 +186,11 @@ function ov() {
       (l.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });   // 本机的覆盖云端
       return Object.keys(m).map(k => m[k]);
     })(),
-    results: (c.results || []).concat(l.results || []),
+    results: (function () {
+      const hid = new Set(c.hiddenResults || []);
+      return (c.results || []).concat(l.results || [])
+        .filter(r => !hid.has(r.uid || (r.name + '|' + r.sec)));
+    })(),
     photos: (c.photos || []).concat(l.photos || []),
     competitions: (c.competitions || []).concat(l.competitions || []),
     compRecords: mergeCompRecords(c.compRecords, l.compRecords),
@@ -1625,10 +1629,12 @@ function buildFixPlan(sheets) {
   (BASE.roster || []).forEach(m => { baseByName[m.name] = m; });
   (o.newMembers || []).forEach(m => { curNew[m.name] = m; });
   const plan = { memberFix: [], addMember: [], recFix: [], recHide: [], recDel: [], recAdd: [], recEdit: [], skip: [] };
+  // 返回 [] = 明确"不进公开名册"；返回 null = 这个值看不懂（例如「队员」），保持原样别动
   const normLevel = v => {
     const t = String(v == null ? '' : v).trim();
     if (!t || t === '未分级' || t === '-' || t === '无' || t === '否' || t === '0') return [];
-    return t.split(/[,，、+/]/).map(x => x.trim()).filter(x => x === '正式' || x === '预备');
+    const hit = t.split(/[,，、+/]/).map(x => x.trim()).filter(x => x === '正式' || x === '预备');
+    return hit.length ? hit : null;
   };
   const sameLv = (a, b) => (a || []).slice().sort().join('/') === (b || []).slice().sort().join('/');
 
@@ -1645,7 +1651,8 @@ function buildFixPlan(sheets) {
       const cur = baseByName[name] ? Object.assign({}, baseByName[name], o.memberEdits[name] || {}) : curNew[name];
       if (!cur) { plan.addMember.push({ name: name, info: info }); return; }
       const diff = ['sex', 'college', 'major', 'grade'].filter(f => (info[f] || '') !== (cur[f] || ''));
-      if (!sameLv(cur.level, info.level)) diff.push('身份');
+      if (info.level && !sameLv(cur.level, info.level)) diff.push('身份');
+      if (info.level === null) delete info.level;          // 看不懂就不改身份
       if (diff.length) plan.memberFix.push({ name: name, info: info, diff: diff, isNew: !baseByName[name], uid: cur.uid || '' });
     });
   }
@@ -1679,24 +1686,30 @@ function buildFixPlan(sheets) {
           return;
         }
         if (!sec) { plan.skip.push(name + ' 的成绩看不懂：' + rawRes); return; }
-        if (Math.abs(sec - oldSec) > 0.05 || (ev && ev !== orig.event) || date !== (orig.date || '')
-            || note !== (orig.note || orig.rank || '')) {
+        const comp = comps.filter(c => c.id === cid)[0] || {};
+        const expDate = orig.date || comp.date || '';            // 导出时写进"日期"列的值
+        const expNote = orig.rank || orig.note || '';            // 导出时写进"名次/备注"列的值
+        if (Math.abs(sec - oldSec) > 0.05 || (ev && ev !== orig.event) || date !== expDate || note !== expNote) {
           plan.recFix.push({
             cid: cid, hideKey: cid + '|' + name + '|' + oldSec,
             desc: name + ' ' + (orig.event || '') + ' ' + (orig.fmt || fmtSec(orig.sec))
                   + ' → ' + (ev || orig.event) + ' ' + fmtSec(sec),
             rec: { name: name, event: ev || orig.event, raw: rawRes, sec: sec, fmt: fmtSec(sec),
-                   sex: orig.sex || '', college: orig.college || '', date: date || orig.date || '',
-                   note: note || '', keep: true },
+                   sex: orig.sex || '', college: orig.college || '',
+                   date: (date && date !== expDate) ? date : (orig.date || ''),
+                   note: (note && note !== expNote) ? note : (orig.note || orig.rank || ''), keep: true },
           });
         }
         return;
       }
       if (key.indexOf('res:') === 0) {
         const uid = key.slice(4);
-        const cur = (ovLocal().results || []).find(r => (r.uid || (r.name + '|' + r.sec)) === uid);
+        const allRes = (ov().results || []);
+        const cur = allRes.find(r => (r.uid || (r.name + '|' + r.sec)) === uid);
         if (!cur) { plan.skip.push('找不到自由成绩：' + name); return; }
-        if (isDel) { plan.recDel.push({ uid: uid, desc: name + ' ' + (cur.event || '') + ' ' + (cur.fmt || fmtSec(cur.sec)) }); return; }
+        const inLocal = (ovLocal().results || []).some(r => (r.uid || (r.name + '|' + r.sec)) === uid);
+        if (!inLocal) cur._cloud = true;            // 云端发布过的：改/删都靠 hiddenResults
+        if (isDel) { plan.recDel.push({ uid: uid, desc: name + ' ' + (cur.event || '') + ' ' + (cur.fmt || fmtSec(cur.sec)), cloud: !inLocal }); return; }
         if (sec && (Math.abs(sec - Number(cur.sec)) > 0.05 || (ev && ev !== cur.event) || date !== (cur.date || ''))) {
           plan.recEdit.push({ uid: uid, desc: name + ' ' + (cur.event || '') + ' ' + (cur.fmt || fmtSec(cur.sec))
             + ' → ' + (ev || cur.event) + ' ' + fmtSec(sec),
@@ -1768,16 +1781,27 @@ function applyFixPlan() {
     }
   });
   p.addMember.forEach(x => {
-    l.newMembers.push(Object.assign({ uid: nmUid(), name: x.name, addedAt: new Date().toISOString().slice(0, 10) }, x.info));
+    const info = Object.assign({}, x.info);
+    if (!info.level) info.level = ['正式'];
+    l.newMembers.push(Object.assign({ uid: nmUid(), name: x.name, addedAt: new Date().toISOString().slice(0, 10) }, info));
   });
   p.recHide.forEach(x => { l.hiddenRecords.push(x.hideKey); });
   p.recFix.forEach(x => {
     l.hiddenRecords.push(x.hideKey);
     (l.compRecords[x.cid] = l.compRecords[x.cid] || []).push(x.rec);
   });
-  p.recDel.forEach(x => { l.results = (l.results || []).filter(r => (r.uid || (r.name + '|' + r.sec)) !== x.uid); });
+  p.recDel.forEach(x => {
+    l.results = (l.results || []).filter(r => (r.uid || (r.name + '|' + r.sec)) !== x.uid);
+    if (x.cloud) l.hiddenResults = (l.hiddenResults || []).concat([x.uid]);      // 云端那条也要屏蔽
+  });
   p.recEdit.forEach(x => {
-    (l.results = l.results || []).forEach(r => { if ((r.uid || (r.name + '|' + r.sec)) === x.uid) Object.assign(r, x.rec); });
+    let hit = (l.results = l.results || []);
+    let found = false;
+    hit.forEach(r => { if ((r.uid || (r.name + '|' + r.sec)) === x.uid) { Object.assign(r, x.rec); found = true; } });
+    if (!found) {                                    // 改的是云端那条 → 屏蔽旧的 + 本机加新的
+      l.hiddenResults = (l.hiddenResults || []).concat([x.uid]);
+      l.results.push(x.rec);
+    }
   });
   p.recAdd.forEach(x => {
     if (x.cid) { (l.compRecords[x.cid] = l.compRecords[x.cid] || []).push(x.rec); }
@@ -2532,7 +2556,12 @@ async function pushToGitHub() {
         (l.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });
         return Object.keys(m).map(k => m[k]);
       })(),
-      results: (cloud.results || []).concat(l.results || []),
+      results: (function () {
+        const hid = new Set((cloud.hiddenResults || []).concat(l.hiddenResults || []));
+        return (cloud.results || []).concat(l.results || [])
+          .filter(r => !hid.has(r.uid || (r.name + '|' + r.sec)));
+      })(),
+      hiddenResults: (cloud.hiddenResults || []).concat(l.hiddenResults || []),
       competitions: (cloud.competitions || []).concat(l.competitions || []),
       compRecords: mergeCompRecords(cloud.compRecords, l.compRecords),
       hiddenRecords: Array.from(new Set((cloud.hiddenRecords || []).concat(l.hiddenRecords || []))),
