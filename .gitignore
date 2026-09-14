@@ -7,3 +7,7 @@ _test_script.js
 手机截图/
 启动公网链接.bat
 工具/
+_t2.bat
+*.log
+_*.tmp
+_t.js
