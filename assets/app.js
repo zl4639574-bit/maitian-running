@@ -184,7 +184,12 @@ function ov() {
       const m = {};
       (c.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });
       (l.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });   // 本机的覆盖云端
-      return Object.keys(m).map(k => m[k]);
+      // 新增队员没填身份 → 默认「正式」；不然会被加进去却不出现在公开名册里
+      return Object.keys(m).map(k => {
+        const x = m[k];
+        if (!(x.level || []).length) return Object.assign({}, x, { level: ['正式'] });
+        return x;
+      });
     })(),
     results: (function () {
       const hid = new Set(c.hiddenResults || []);
@@ -973,6 +978,15 @@ function renderManage() {
       原始名册 ${ros.length} 人${(o.newMembers || []).length ? '，队长新增 ' + (o.newMembers || []).length + ' 人' : ''}
       （展示版显示正式/预备的 ${rosterList().length} 人）。改完记得去「同步」发布。
     </div>
+
+    ${(LOCAL_OV && ((LOCAL_OV.newMembers || []).length + Object.keys(LOCAL_OV.memberEdits || {}).length)) ? `
+    <div class="notice" style="border-color:var(--wheat);margin-bottom:16px;line-height:2">
+      ⚠️ 名册有 <b>${(LOCAL_OV.newMembers || []).length + Object.keys(LOCAL_OV.memberEdits || {}).length}</b> 处修改
+      还<b>只在这台设备上</b>（新增 ${(LOCAL_OV.newMembers || []).length} 人 / 修改 ${Object.keys(LOCAL_OV.memberEdits || {}).length} 人）。
+      <b>不点同步，展示版的名册不会变。</b>
+      ${ghCfg().token ? '<div class="chips" style="margin-top:10px"><button class="btn" id="btnRosterSync">立即同步到线上</button></div>'
+                      : '<br>另外还没配「访问令牌」，去「同步」里填一次就能发布了。'}
+    </div>` : ''}
 
     <div class="notice" style="margin-bottom:18px;border-color:var(--wheat)">
       <b>＋ 添加新队员</b>
@@ -1784,7 +1798,7 @@ function applyFixPlan() {
   });
   p.addMember.forEach(x => {
     const info = Object.assign({}, x.info);
-    if (!info.level) info.level = ['正式'];
+    if (!info.level || !info.level.length) info.level = ['正式'];
     l.newMembers.push(Object.assign({ uid: nmUid(), name: x.name, addedAt: new Date().toISOString().slice(0, 10) }, info));
   });
   p.recHide.forEach(x => { l.hiddenRecords.push(x.hideKey); });
@@ -2066,6 +2080,8 @@ function bindManage() {
     l.hidden = (l.hidden || []).filter(x => x !== n);
     saveLocalOv(); render();
   });
+  const rsy = $('#btnRosterSync');
+  if (rsy) rsy.onclick = () => pushToGitHub();
   const am = $('#btnAddMember');
   if (am) am.onclick = () => {
     const name = ($('#nm_name').value || '').trim().replace(/\s/g, '');
@@ -2172,6 +2188,7 @@ function bindManage() {
   }
   const mq = $('#mRosterQ');
   if (mq) mq.oninput = () => {
+    if (window._imeOn) return;                    // 拼音组词中，不检索
     state.mRosterQ = mq.value;
     clearTimeout(window._mt);
     window._mt = setTimeout(() => { render(); const el = $('#mRosterQ'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 260);
@@ -2556,7 +2573,10 @@ async function pushToGitHub() {
         const m = {};
         (cloud.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });
         (l.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });
-        return Object.keys(m).map(k => m[k]);
+        return Object.keys(m).map(k => {
+          const x = m[k];
+          return (x.level || []).length ? x : Object.assign({}, x, { level: ['正式'] });
+        });
       })(),
       results: (function () {
         const hid = new Set((cloud.hiddenResults || []).concat(l.hiddenResults || []));
@@ -2738,7 +2758,20 @@ document.addEventListener('change', e => {
   if (e.target.id === 'rosterCollege') { state.rosterCollege = e.target.value; render(); }
 }, false);
 
+/* 中文输入法（拼音）正在组词时不要触发检索 —— 否则会打断输入、边打边搜 */
+const IME_IDS = ['boardQ', 'rosterQ', 'mRosterQ', 'nm_name', 'nm_college', 'nm_major', 'nm_grade'];
+document.addEventListener('compositionstart', e => {
+  if (e.target && IME_IDS.indexOf(e.target.id || '') >= 0) window._imeOn = true;
+}, true);
+document.addEventListener('compositionend', e => {
+  if (e.target && IME_IDS.indexOf(e.target.id || '') >= 0) {
+    window._imeOn = false;
+    try { e.target.dispatchEvent(new Event('input', { bubbles: true })); } catch (err) {}
+  }
+}, true);
+
 document.addEventListener('input', e => {
+  if (window._imeOn) return;                      // 组词中，先不管
   if (e.target.id === 'boardQ') {
     state.pbQ = e.target.value;
     clearTimeout(window._qi);
