@@ -738,7 +738,7 @@ function renderManage() {
     ? m.name.includes(state.mRosterQ) : (m.level || []).some(l => l === '正式' || l === '预备')).slice(0, 60);
   const removed = ros.filter(m => hiddenSet.has(m.name));
   const added = o.results;
-  const cfg = lsGet(LS_CFG, { owner: '', repo: '', branch: 'master', token: '' });
+  const cfg = ghCfg();
   const pend = pendingCount();
 
   const SEC = [['sync', '同步'], ['comp', '比赛成绩'], ['queue', '队员直传'], ['team', '队伍信息'],
@@ -762,7 +762,8 @@ function renderManage() {
       当前状态：${SYNC_STATE === 'cloud' ? '✅ 已连接线上数据'
         : SYNC_STATE === 'local' ? '⚠️ 线上还没有数据文件（第一次发布时会创建）'
         : '⚠️ 读取线上数据失败（离线或网络问题），本机修改仍可用'}
-      <br>线上仓库：<b>${esc(cfg.owner || '未填写')} / ${esc(cfg.repo || '未填写')}</b>
+       <br>线上仓库：<b>${esc(cfg.owner)} / ${esc(cfg.repo)}</b>（分支 ${esc(cfg.branch)}）
+       <br>访问令牌：${cfg.token ? '<b style="color:var(--field)">✅ 已填写</b>' : '<b style="color:#c0392b">⚠️ 还没填，同步不了</b>'}
       <br>你的修改会提交到这个仓库，GitHub Pages 会自动重新发布（约 1 分钟）。
     </div>
     <div class="grid2" style="margin:16px 0">
@@ -1384,14 +1385,27 @@ function saveLocalOv() {
   lsSet(LS_LOCAL, LOCAL_OV);
 }
 
+const GH_DEF = { owner: 'zl4639574-bit', repo: 'maitian-running', branch: 'master' };
+/** 读同步配置：没填的用默认值补齐，避免"未填写"卡住 */
+function ghCfg() {
+  const c = lsGet(LS_CFG, {}) || {};
+  return { owner: c.owner || GH_DEF.owner, repo: c.repo || GH_DEF.repo,
+           branch: c.branch || GH_DEF.branch, token: c.token || '' };
+}
+
 function bindManage() {
-  const cfg = lsGet(LS_CFG, { owner: '', repo: '', branch: 'master', token: '' });
+  const cfg = ghCfg();
   $$('[data-cfg]').forEach(el => el.onchange = () => {
     cfg[el.dataset.cfg] = el.value.trim();
     lsSet(LS_CFG, cfg);
   });
   const s1 = $('#btnSaveCfg');
-  if (s1) s1.onclick = () => { lsSet(LS_CFG, cfg); toast('设置已保存'); };
+  if (s1) s1.onclick = () => {          // 直接读输入框，不依赖有没有触发过 onchange
+    $$('[data-cfg]').forEach(el => { cfg[el.dataset.cfg] = (el.value || '').trim(); });
+    lsSet(LS_CFG, cfg);
+    toast(cfg.token ? '设置已保存，可以往下点「同步我的修改到线上」了' : '设置已保存；要同步还得填访问令牌', 4200);
+    render();
+  };
 
   const pull = $('#btnPull');
   if (pull) pull.onclick = async () => {
@@ -1709,8 +1723,8 @@ async function ghPut(cfg, path, b64, message) {
 }
 
 async function pushToGitHub() {
-  const cfg = lsGet(LS_CFG, null);
-  if (!cfg || !cfg.token || !cfg.owner || !cfg.repo) return toast('先把 GitHub 用户名 / 仓库名 / 令牌填好并保存');
+  const cfg = ghCfg();
+  if (!cfg.token) return toast('还没填「访问令牌」：数据管理 → 同步 → 粘上 github_pat_... → 点保存设置', 6000);
   const l = LOCAL_OV || {};
   if (!pendingCount()) return toast('没有需要同步的修改');
   await loadCloud(true);            // 先拉一次最新的云端数据，避免把别人刚提交的覆盖掉
