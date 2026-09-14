@@ -741,7 +741,7 @@ function renderManage() {
   const cfg = ghCfg();
   const pend = pendingCount();
 
-  const SEC = [['sync', '同步'], ['comp', '比赛成绩'], ['queue', '队员直传'], ['team', '队伍信息'],
+  const SEC = [['sync', '同步'], ['comp', '比赛成绩'], ['team', '队伍信息'],
                ['honors', '荣誉'], ['hall', '优秀队员'], ['member', '队员名册'], ['photos', '照片'],
                ['results', '自由成绩']];
   const comps = competitions();
@@ -869,36 +869,6 @@ function renderManage() {
           placeholder="全马 2:48:33&#10;半马 1:19:58">${esc((a.items || []).join('\n'))}</textarea>
       </div>`).join('') || '<div class="empty">还没有内容（荣誉与资料页就不会显示这个板块）</div>'}
     <button class="btn" id="btnSaveHall" style="margin-top:16px">保存</button>
-  </div>` : ''}
-
-  ${state.manageSec === 'queue' ? `
-  <div class="card sec">
-    <div class="sec-head"><h2>队员直传（队员自己上传，不用经过队长）</h2></div>
-    <div class="tiny" style="line-height:1.9;margin-bottom:14px">
-      开通后，队员版会出现「一键提交给全队」按钮：队员在手机上录完成绩，点一下，
-      <b>几分钟后自动进全队的成绩榜</b>，不需要队长操作。<br>
-      原理：队员的成绩先提交到一个专门的「收集仓库」，再由 GitHub 每 10 分钟自动合并进网站数据。
-      提交用的令牌只能操作那个收集仓库，动不了网站代码，可以放心贴在网页里。<br>
-      当前状态：${(qcfgGet() && qcfgGet().token) ? '<b style="color:var(--field)">✅ 已开通（令牌存在这台设备上，没上传）</b>' : '⚠️ 未开通'}
-    </div>
-    <div class="grid2" style="margin-bottom:14px">
-      <div class="field"><label>收集仓库名</label><input id="q_repo" value="${esc((qcfgGet() && qcfgGet().repo) || 'maitian-run-queue')}"></div>
-      <div class="field"><label>分支</label><input id="q_branch" value="${esc((qcfgGet() && qcfgGet().branch) || 'main')}"></div>
-      <div class="field" style="grid-column:1/-1"><label>收集仓库令牌（Contents: Read and write）</label>
-        <input id="q_token" placeholder="github_pat_..." value="${esc((qcfgGet() && qcfgGet().token) || '')}"></div>
-    </div>
-    <button class="btn" id="btnSaveQueue">保存令牌（只存这台设备）</button>
-    <button class="btn" id="btnMakeLink" style="margin-left:8px">生成队员专用链接</button>
-    <button class="btn danger sm" id="btnClearQueue" style="margin-left:8px">关闭直传</button>
-    <div id="linkBox" style="margin-top:14px"></div>
-    <div class="notice" style="margin-top:16px">
-      <b>令牌怎么弄：</b>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens →
-      Generate new token → Repository access 只勾 <code>maitian-run-queue</code> →
-      Permissions 里 <b>Contents = Read and write</b> → 生成后粘到上面。
-      <b>令牌只存在你这台设备的浏览器里，不会写进网页、也不会提交进仓库</b>（GitHub 的密钥扫描也不允许）。
-      开通后点「生成队员专用链接」，把链接发到群里 —— 队员用那条链接打开会出现「提交给全队」按钮。
-      这个令牌只能往收集仓库写成绩，动不了网站代码。
-    </div>
   </div>` : ''}
 
   ${state.manageSec === 'team' ? `
