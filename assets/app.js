@@ -159,7 +159,8 @@ const BASE = window.TEAM_DATA || { team: {}, roster: [], datasets: [], pb: [] };
 const BASE_PHOTOS = window.TEAM_PHOTOS || { photos: [] };
 
 const EMPTY_OV = { team: {}, honors: null, activities: null, hidden: [], memberEdits: {},
-                   results: [], photos: [], competitions: [], hiddenRecords: [] };
+                   results: [], photos: [], competitions: [], hiddenRecords: [],
+                   hall: null, queue: null };
 
 let CLOUD_OV = null;      // 云端 overrides.json（线上生效的修改）
 let LOCAL_OV = MODE === 'captain' ? lsGet(LS_LOCAL, null) : null;   // 队长本机未同步的修改
@@ -178,6 +179,8 @@ function ov() {
     competitions: (c.competitions || []).concat(l.competitions || []),
     compRecords: mergeCompRecords(c.compRecords, l.compRecords),
     hiddenRecords: Array.from(new Set((c.hiddenRecords || []).concat(l.hiddenRecords || []))),
+    hall: l.hall || c.hall || null,
+    queue: l.queue || c.queue || null,
   };
 }
 
@@ -692,7 +695,8 @@ function renderUpload() {
         <thead><tr><th class="no-sort">姓名</th><th class="no-sort">项目</th><th class="no-sort">成绩</th>
           <th class="no-sort hide-sm">日期</th><th class="no-sort hide-sm">赛事 / 备注</th><th class="no-sort"></th></tr></thead>
         <tbody>${L.map(r => `
-          <tr><td><b>${esc(r.name)}</b></td><td class="tiny">${esc(r.event)}</td>
+          <tr><td><b>${esc(r.name)}</b>${r.submitted ? ' <span class="tagbadge green">已提交</span>' : ''}</td>
+            <td class="tiny">${esc(r.event)}</td>
             <td class="tm">${esc(r.fmt || fmtSec(r.sec))}</td><td class="tiny hide-sm">${esc(r.date || '')}</td>
             <td class="tiny hide-sm">${esc(r.meet || '')}${r.rank ? ' · ' + esc(r.rank) : ''}</td>
             <td><button class="btn flat sm" data-del="${esc(r.uid)}">删除</button></td></tr>`).join('')}
@@ -700,15 +704,27 @@ function renderUpload() {
       </table>
     </div>` : '<div class="empty">还没有录入成绩</div>'}
 
-    ${batch ? `
     <div class="notice" style="margin-top:16px">
-      导入的成绩先存在本机。要让全队都看到，去 <b>数据管理 → 同步</b>，把成绩发布到线上；
-      发布后展示版和队员版的成绩榜会一起更新（约 1 分钟生效）。
-    </div>` : `
-    <div class="notice" style="margin-top:16px">
-      这里的成绩只保存在<b>你这台设备的浏览器</b>里，别人看不到。要进全队榜单，把「复制成文本」发给队长即可。
-    </div>`}
-  </div>`;
+      ${batch ? '导入的成绩先存在本机。要让全队都看到，去 <b>数据管理 → 同步</b> 发布到线上。'
+              : '这里的成绩只保存在<b>你这台设备的浏览器</b>里，别人看不到自己手机上的这一份。'}
+    </div>
+  </div>
+
+  ${batch ? '' : `
+  <div class="card sec">
+    <h2>③ 提交给全队（不用经过队长）</h2>
+    ${QUEUE_CFG && QUEUE_CFG.token ? `
+      <div class="tiny" style="line-height:1.9;margin-bottom:14px">
+        点下面的按钮，把还没提交的成绩送到队里的收集仓库，<b>几分钟后自动进全队成绩榜</b>，
+        不用等队长操作。已经提交过的会标上「已提交」。
+      </div>
+      <button class="btn" id="btnSubmitAll" ${L.filter(r => !r.submitted).length ? '' : 'disabled'}>
+        提交 ${L.filter(r => !r.submitted).length} 条给全队
+      </button>
+      <span class="tiny" style="margin-left:10px">提交后可以随时在队长版的「比赛成绩」里被删掉</span>` : `
+      <div class="notice">还没开通「队员直传」。让队长在<b>队长版 → 数据管理 → 队员直传</b>里开通，
+        之后你就能一键把成绩送上全队榜。</div>`}
+  </div>`}`;
 }
 
 /* ------------------------------------------------- 渲染：数据管理（队长版） */
@@ -725,8 +741,9 @@ function renderManage() {
   const cfg = lsGet(LS_CFG, { owner: '', repo: '', branch: 'main', token: '' });
   const pend = pendingCount();
 
-  const SEC = [['sync', '同步'], ['comp', '比赛成绩'], ['team', '队伍信息'], ['honors', '荣誉'],
-               ['member', '队员名册'], ['photos', '照片'], ['results', '自由成绩']];
+  const SEC = [['sync', '同步'], ['comp', '比赛成绩'], ['queue', '队员直传'], ['team', '队伍信息'],
+               ['honors', '荣誉'], ['hall', '优秀队员'], ['member', '队员名册'], ['photos', '照片'],
+               ['results', '自由成绩']];
   const comps = competitions();
   const curComp = comps.find(c => c.id === state.mComp) || comps[0];
 
@@ -828,6 +845,54 @@ function renderManage() {
       </div>
       ${curComp.records.length > 60 ? '<div class="tiny" style="margin-top:8px">只显示前 60 条，删除操作仍然有效。</div>' : ''}
     </div>` : ''}
+  </div>` : ''}
+
+  ${state.manageSec === 'hall' ? `
+  <div class="card sec">
+    <div class="sec-head"><h2>优秀队员 · 个人最好成绩</h2>
+      <button class="btn ghost sm" id="btnAddHall">＋ 加一位</button></div>
+    <div class="tiny" style="margin-bottom:14px">
+      这里的内容会显示在「荣誉与资料」页。默认是空的（不显示那个板块），想放谁就加谁。
+      成绩一行一条，例如 <code>全马 2:48:33</code>。
+    </div>
+    ${(ov().hall || []).map((a, i) => `
+      <div class="hallrow">
+        <div class="mrow-f" style="margin-bottom:8px">
+          <input data-hall="${i}" data-hf="name" value="${esc(a.name || '')}" placeholder="姓名" class="w100">
+          <input data-hall="${i}" data-hf="sex" value="${esc(a.sex || '')}" placeholder="性别" class="w60">
+          <input data-hall="${i}" data-hf="note" value="${esc(a.note || '')}" placeholder="一句话介绍（可空）">
+          <button class="btn danger sm" data-halldel="${i}">删</button>
+        </div>
+        <textarea class="ta" rows="3" data-hall="${i}" data-hf="items"
+          placeholder="全马 2:48:33&#10;半马 1:19:58">${esc((a.items || []).join('\n'))}</textarea>
+      </div>`).join('') || '<div class="empty">还没有内容（荣誉与资料页就不会显示这个板块）</div>'}
+    <button class="btn" id="btnSaveHall" style="margin-top:16px">保存</button>
+  </div>` : ''}
+
+  ${state.manageSec === 'queue' ? `
+  <div class="card sec">
+    <div class="sec-head"><h2>队员直传（队员自己上传，不用经过队长）</h2></div>
+    <div class="tiny" style="line-height:1.9;margin-bottom:14px">
+      开通后，队员版会出现「一键提交给全队」按钮：队员在手机上录完成绩，点一下，
+      <b>几分钟后自动进全队的成绩榜</b>，不需要队长操作。<br>
+      原理：队员的成绩先提交到一个专门的「收集仓库」，再由 GitHub 每 10 分钟自动合并进网站数据。
+      提交用的令牌只能操作那个收集仓库，动不了网站代码，可以放心贴在网页里。<br>
+      当前状态：${(ov().queue && ov().queue.token) ? '<b style="color:var(--field)">✅ 已开通</b>' : '⚠️ 未开通'}
+    </div>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="field"><label>收集仓库名</label><input id="q_repo" value="${esc((ov().queue && ov().queue.repo) || 'maitian-run-queue')}"></div>
+      <div class="field"><label>分支</label><input id="q_branch" value="${esc((ov().queue && ov().queue.branch) || 'main')}"></div>
+      <div class="field" style="grid-column:1/-1"><label>收集仓库令牌（Contents: Read and write）</label>
+        <input id="q_token" placeholder="github_pat_..." value="${esc((ov().queue && ov().queue.token) || '')}"></div>
+    </div>
+    <button class="btn" id="btnSaveQueue">保存并开通</button>
+    <button class="btn danger sm" id="btnClearQueue" style="margin-left:8px">关闭直传</button>
+    <div class="notice" style="margin-top:16px">
+      <b>令牌怎么弄：</b>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens →
+      Generate new token → Repository access 只勾 <code>maitian-run-queue</code> →
+      Permissions 里 <b>Contents = Read and write</b> → 生成后粘到上面。
+      这个令牌只对这个收集仓库有效，泄出去最多有人往里面塞垃圾成绩，队长删掉就行。
+    </div>
   </div>` : ''}
 
   ${state.manageSec === 'team' ? `
@@ -1022,20 +1087,22 @@ function renderAbout() {
     </div>
   </div>
 
+  ${(ov().hall || []).length ? `
   <div class="card sec">
-    <h2>高水平运动员 · 个人最好成绩</h2>
+    <div class="sec-head"><h2>优秀队员 · 个人最好成绩</h2>
+      ${MODE === 'captain' ? '<button class="btn ghost sm" data-go="manage" data-msec="hall">编辑 →</button>' : ''}</div>
     <div class="grid-cards">
-      ${(BASE.pb || []).map(a => `
+      ${(ov().hall || []).map(a => `
         <div class="pcard">
-          <div class="nm">${esc(a.name)} <span class="tagbadge">${esc(a.sex || '')}</span></div>
+          <div class="nm">${esc(a.name)} ${a.sex ? `<span class="tagbadge">${esc(a.sex)}</span>` : ''}</div>
           <div class="pb">${(a.items || []).map(it => {
-            const m = it.match(/^(.*?)\s*([\d:.']+)$/);
+            const m = String(it).match(/^(.*?)\s*([\d:.']+)$/);
             return `<div><span class="muted">${esc(m ? m[1] : it)}</span><b>${esc(m ? m[2] : '')}</b></div>`;
           }).join('')}</div>
-          <div class="tiny" style="margin-top:10px;line-height:1.6">${esc(a.note || '')}</div>
+          ${a.note ? `<div class="tiny" style="margin-top:10px;line-height:1.6">${esc(a.note)}</div>` : ''}
         </div>`).join('')}
     </div>
-  </div>
+  </div>` : ''}
 
   <div class="card sec">
     <div class="sec-head"><h2>队伍活动</h2>
@@ -1125,6 +1192,8 @@ function bindUpload() {
     download('麦田守望_我的成绩_' + todayStr() + '.csv', '\ufeff' + lines.join('\r\n'));
     toast('已导出 CSV');
   };
+  const subm = $('#btnSubmitAll');
+  if (subm) subm.onclick = submitMine;
   const clr = $('#btnClear');
   if (clr) clr.onclick = () => {
     if (confirm('确定清空本机记录的 ' + myResults().length + ' 条成绩？')) { setMyResults([]); toast('已清空'); render(); }
@@ -1306,6 +1375,8 @@ function pendingCount() {
   if (l.competitions && l.competitions.length) n += l.competitions.length;
   if (l.compRecords) n += Object.keys(l.compRecords).reduce((a, k) => a + l.compRecords[k].length, 0);
   if (l.hiddenRecords && l.hiddenRecords.length) n += l.hiddenRecords.length;
+  if (l.hall) n += 1;
+  if (l.queue) n += 1;
   return n;
 }
 function saveLocalOv() {
@@ -1409,6 +1480,50 @@ function bindManage() {
     state.mRosterQ = mq.value;
     clearTimeout(window._mt);
     window._mt = setTimeout(() => { render(); const el = $('#mRosterQ'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 260);
+  };
+
+  // ---- 优秀队员 ----
+  const sah = $('#btnAddHall');
+  if (sah) sah.onclick = () => {
+    const cur = (ov().hall || []).slice();
+    cur.push({ name: '', sex: '', items: [], note: '' });
+    ovLocal().hall = cur; saveLocalOv(); render();
+  };
+  const shh = $('#btnSaveHall');
+  if (shh) shh.onclick = () => {
+    const arr = [];
+    Array.from(new Set($$('[data-hall]').map(x => x.dataset.hall))).forEach(i => {
+      const g = f => ($(`[data-hall="${i}"][data-hf="${f}"]`) || {}).value || '';
+      arr.push({ name: g('name').trim(), sex: g('sex').trim(),
+                 items: g('items').split('\n').map(x => x.trim()).filter(Boolean),
+                 note: g('note').trim() });
+    });
+    ovLocal().hall = arr.filter(a => a.name);
+    saveLocalOv(); toast('已保存优秀队员'); render();
+  };
+  $$('[data-halldel]').forEach(b => b.onclick = () => {
+    const cur = (ov().hall || []).slice();
+    cur.splice(+b.dataset.halldel, 1);
+    ovLocal().hall = cur; saveLocalOv(); render();
+  });
+
+  // ---- 队员直传 ----
+  const sbq = $('#btnSaveQueue');
+  if (sbq) sbq.onclick = () => {
+    const t = ($('#q_token').value || '').trim();
+    if (!t) return toast('请先填收集仓库令牌');
+    ovLocal().queue = { owner: (lsGet(LS_CFG, {}) || {}).owner || 'zl4639574-bit',
+                        repo: ($('#q_repo').value || '').trim() || 'maitian-run-queue',
+                        branch: ($('#q_branch').value || '').trim() || 'main', token: t };
+    saveLocalOv();
+    toast('已保存，点上面的「同步我的修改到线上」发布给所有人', 4200);
+    render();
+  };
+  const cbq = $('#btnClearQueue');
+  if (cbq) cbq.onclick = () => {
+    if (!confirm('关闭队员直传？（队员版的提交按钮会消失）')) return;
+    ovLocal().queue = { owner: '', repo: '', branch: '', token: '' };
+    saveLocalOv(); toast('已关闭'); render();
   };
 
   // ---- 比赛成绩管理 ----
@@ -1598,6 +1713,7 @@ async function pushToGitHub() {
   if (!cfg || !cfg.token || !cfg.owner || !cfg.repo) return toast('先把 GitHub 用户名 / 仓库名 / 令牌填好并保存');
   const l = LOCAL_OV || {};
   if (!pendingCount()) return toast('没有需要同步的修改');
+  await loadCloud(true);            // 先拉一次最新的云端数据，避免把别人刚提交的覆盖掉
   const btn = $('#btnPush');
   if (btn) { btn.disabled = true; btn.textContent = '正在同步…'; }
   try {
@@ -1613,6 +1729,8 @@ async function pushToGitHub() {
       competitions: (cloud.competitions || []).concat(l.competitions || []),
       compRecords: mergeCompRecords(cloud.compRecords, l.compRecords),
       hiddenRecords: Array.from(new Set((cloud.hiddenRecords || []).concat(l.hiddenRecords || []))),
+      hall: (l.hall || cloud.hall || null),
+      queue: (l.queue || cloud.queue || null),
       photos: (cloud.photos || []).concat((l.photos || []).map(p => {
         const { data, size, ...rest } = p;
         return rest;                      // 图片本体单独提交，引用文件名
@@ -1630,6 +1748,10 @@ async function pushToGitHub() {
     // 3) 再传数据
     const ovB64 = btoa(unescape(encodeURIComponent('window.TEAM_OVERRIDES = ' + JSON.stringify(merged, null, 1) + ';\n')));
     await ghPut(cfg, 'data/overrides.js', ovB64, '更新队伍数据（队伍信息/荣誉/名册/成绩/照片）');
+    if (merged.queue) {          // 队员直传的配置单独一个文件，队员版直接读
+      const qB64 = btoa(unescape(encodeURIComponent('window.QUEUE_CFG = ' + JSON.stringify(merged.queue) + ';\n')));
+      await ghPut(cfg, 'data/queue-config.js', qB64, '更新队员直传配置');
+    }
     CLOUD_OV = merged;
     LOCAL_OV = {};
     lsSet(LS_LOCAL, {});
@@ -1639,6 +1761,58 @@ async function pushToGitHub() {
     console.error(e);
     toast('同步失败：' + e.message, 6000);
     if (btn) { btn.disabled = false; btn.textContent = '同步我的修改到线上'; }
+  }
+}
+
+/* ------------------------------------------------- 队员直传（不经过队长） */
+
+let QUEUE_CFG = null;      // 从 data/queue-config.js 读到的收集仓库配置
+
+async function loadQueueCfg() {
+  try {
+    const r = await fetch(ROOT + 'data/queue-config.js?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return false;
+    const t = await r.text();
+    const m = t.match(/window\.QUEUE_CFG\s*=\s*([\s\S]*?);\s*$/);
+    QUEUE_CFG = m ? JSON.parse(m[1]) : null;
+    return !!(QUEUE_CFG && QUEUE_CFG.token && QUEUE_CFG.repo);
+  } catch (e) { return false; }
+}
+
+async function submitToQueue(recs) {
+  if (!QUEUE_CFG || !QUEUE_CFG.token) throw new Error('还没开通队员直传');
+  const id = 'q' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+  const payload = { uid: id, who: (recs[0] || {}).name || '', ts: Date.now(), records: recs };
+  const path = 'queue/' + id + '.json';
+  const url = GH + '/repos/' + (QUEUE_CFG.owner || 'zl4639574-bit') + '/' + QUEUE_CFG.repo + '/contents/' + encodeURI(path);
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: ghHeaders({ token: QUEUE_CFG.token }),
+    body: JSON.stringify({ message: '成绩上报 ' + payload.who, content: btoa(unescape(encodeURIComponent(JSON.stringify(payload)))), branch: QUEUE_CFG.branch || 'main' }),
+  });
+  if (!r.ok) throw new Error('提交失败 ' + r.status + ' ' + (await r.text()).slice(0, 100));
+  return true;
+}
+
+async function submitMine() {
+  const list = myResults();
+  const todo = list.filter(r => !r.submitted);
+  if (!todo.length) return toast('没有新成绩要提交');
+  const btn = $('#btnSubmitAll');
+  if (btn) { btn.disabled = true; btn.textContent = '正在提交…'; }
+  try {
+    await submitToQueue(todo.map(r => ({
+      name: r.name, event: r.event, sec: r.sec, fmt: r.fmt || fmtSec(r.sec),
+      sex: r.sex || '', college: r.college || '', date: r.date || '',
+      meet: r.meet || '', note: r.rank || r.note || '',
+    })));
+    todo.forEach(r => { r.submitted = true; });
+    setMyResults(list);
+    toast('已提交 ' + todo.length + ' 条，几分钟后就进全队成绩榜了', 5000);
+    render();
+  } catch (e) {
+    toast('提交失败：' + e.message, 6000);
+    if (btn) { btn.disabled = false; btn.textContent = '重新提交'; }
   }
 }
 
@@ -1746,5 +1920,6 @@ document.addEventListener('keydown', e => {
   const h = (location.hash || '').replace('#', '');
   if ((TABS[MODE] || []).some(t => t[0] === h)) state.tab = h;
   await loadCloud(false);
+  await loadQueueCfg();
   render();
 })();

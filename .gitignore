@@ -11,3 +11,5 @@ _t2.bat
 *.log
 _*.tmp
 _t.js
+_patch_app.py
+queue/
