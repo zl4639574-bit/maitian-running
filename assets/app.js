@@ -778,6 +778,7 @@ function renderManage() {
       <button class="btn ghost" id="btnPull">从线上拉取</button>
       <button class="btn ghost" id="btnPush" ${pend ? '' : 'disabled'}>同步我的修改到线上</button>
       <button class="btn danger" id="btnResetLocal">丢弃本机修改</button>
+      <button class="btn ghost" id="btnTest">测试同步（不改数据）</button>
     </div>
 
     <div class="notice" style="margin-top:16px;line-height:2">
@@ -1418,6 +1419,9 @@ function bindManage() {
     if (cb) cb.onclick = () => copyText(url);
   };
 
+  const bTest = $('#btnTest');
+  if (bTest) bTest.onclick = testSync;
+
   const pull = $('#btnPull');
   if (pull) pull.onclick = async () => {
     toast('正在读取线上数据…');
@@ -1716,6 +1720,8 @@ function handlePhotos(files) {
 
 const GH = 'https://api.github.com';
 
+function b64enc(str) { return btoa(unescape(encodeURIComponent(str))); }
+
 function ghHeaders(cfg) {
   return {
     'Authorization': 'Bearer ' + cfg.token,
@@ -1765,6 +1771,48 @@ async function ghRealBranch(cfg) {
     }
   } catch (e) {}
   return cfg.branch || 'master';
+}
+
+/** 一键测试同步：写一条隐藏的自检标记 → 从网页回读 → 清除标记。不改动任何真实数据。 */
+async function testSync() {
+  const cfg = ghCfg();
+  if (!cfg.token) return toast('先填访问令牌 → 保存设置，再点测试', 7000);
+  const btn = $('#btnTest');
+  if (btn) { btn.disabled = true; btn.textContent = '测试中…（约 20 秒）'; }
+  try {
+    cfg.branch = await ghRealBranch(cfg); lsSet(LS_CFG, cfg);
+    const base = CLOUD_OV || EMPTY_OV;
+    const stamp = Date.now();
+    const mk = (extra) => '/* 由队长版写入 */\nwindow.TEAM_OVERRIDES = ' +
+      JSON.stringify(Object.assign({}, base, extra, { queue: null }), null, 1) + ';\n';
+
+    await ghPut(cfg, 'data/overrides.js', b64enc(mk({ selfTest: stamp })), '自检：写入测试标记');
+    let ok = false, got = 0;
+    for (let i = 0; i < 12; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      try {
+        const r = await fetch(ROOT + 'data/overrides.js?t=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) {
+          const t = await r.text();
+          const m = t.match(/=\s*([\s\S]*?);\s*$/);
+          const o = m ? JSON.parse(m[1]) : {};
+          got = o.selfTest || 0;
+          if (got === stamp) { ok = true; break; }
+        }
+      } catch (e) {}
+    }
+    await ghPut(cfg, 'data/overrides.js', b64enc(mk({})), '自检完成：清除测试标记');
+    await loadCloud(true);
+    if (btn) { btn.disabled = false; btn.textContent = '测试同步（不改数据）'; }
+    render();
+    if (ok) toast('✅ 测试通过：写入成功、网页也读到了，同步完全正常', 9000);
+    else toast('⚠️ 写入成功，但网页暂时没读到（可能 CDN 还在刷新）。等 1 分钟点「从线上拉取」再看，或把这段话发我', 12000);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '测试同步（不改数据）'; }
+    const msg = String(e && e.message || e);
+    if (/Secret detected|secret_scanning/i.test(msg)) toast('被 GitHub 拦下：内容里被判定含密钥（把「队员直传」的历史配置清掉再试）', 10000);
+    else toast('❌ 测试失败：' + msg, 12000);
+  }
 }
 
 async function pushToGitHub() {
