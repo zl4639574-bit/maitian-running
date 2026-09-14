@@ -486,6 +486,15 @@ window.TEAM_OVERRIDES = {
     "正式",
     "预备"
    ]
+  },
+  "李志宏": {
+   "sex": "男",
+   "college": "林学院",
+   "major": "",
+   "grade": "2023",
+   "level": [
+    "正式"
+   ]
   }
  },
  "newMembers": [],
@@ -507,6 +516,7 @@ window.TEAM_OVERRIDES = {
    "published": true
   }
  ],
+ "hiddenResults": [],
  "competitions": [
   {
    "id": "cmu14r7vj",
@@ -519,7 +529,7 @@ window.TEAM_OVERRIDES = {
  ],
  "compRecords": {},
  "hiddenRecords": [],
- "hall": null,
+ "hall": [],
  "queue": null,
  "photos": [
   {
@@ -607,5 +617,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-14T13:00:45.545Z"
+ "updated": "2026-09-14T14:06:26.986Z"
 };
