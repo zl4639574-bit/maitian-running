@@ -520,6 +520,85 @@ window.TEAM_OVERRIDES = {
  "hiddenRecords": [],
  "hall": null,
  "queue": null,
- "photos": [],
- "updated": "2026-09-14T12:14:39.230Z"
+ "photos": [
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388712837_0.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388712920_1.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388712975_2.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713017_3.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713069_4.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713120_5.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713170_6.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713222_7.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713290_8.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713344_9.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713401_10.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713438_11.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789388713498_12.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  }
+ ],
+ "updated": "2026-09-14T12:25:32.859Z"
 };
