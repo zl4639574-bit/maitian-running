@@ -1001,13 +1001,20 @@ function renderManage() {
       <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
     </div>
     <div id="photoPreview" style="margin-top:16px"></div>
-    ${(ov().photos || []).length ? `
+    ${(LOCAL_OV && (LOCAL_OV.photos || []).length) ? `
     <div style="margin-top:20px">
-      <h3>本机新加的照片（${ov().photos.length} 张，尚未同步）</h3>
-      <div class="pgrid">${ov().photos.map((p, i) => `
-        <div class="pitem"><img src="${photoSrc(p)}"><div class="cap">${esc(p.album)}</div>
+      <h3>还没同步的照片（${LOCAL_OV.photos.length} 张）</h3>
+      <div class="tiny" style="margin:8px 0 12px">点「数据管理 → 同步 → 同步我的修改到线上」，这些照片就会出现在照片墙里。</div>
+      <div class="pgrid">${LOCAL_OV.photos.map((p, i) => `
+        <div class="pitem"><img src="${photoSrc(p)}">
           <button class="btn danger sm" data-pdel="${i}" style="position:absolute;top:6px;right:6px">删</button></div>`).join('')}
       </div>
+    </div>` : ''}
+    ${(CLOUD_OV && (CLOUD_OV.photos || []).length) ? `
+    <div class="notice" style="margin-top:16px">
+      ${(LOCAL_OV && (LOCAL_OV.photos || []).length)
+        ? '已上线的照片：' + CLOUD_OV.photos.length + ' 张（上面那批同步后也会计入）'
+        : '✅ 照片全部已同步上线：' + CLOUD_OV.photos.length + ' 张，在「照片墙」里可以看到'}
     </div>` : ''}
   </div>` : ''}
 
@@ -1053,8 +1060,7 @@ function renderPhotos() {
     <div class="pgrid">
       ${a.photos.map((p, i) => `
         <div class="pitem" data-photo="${esc(a.name)}|${i}">
-          <img src="${photoSrc(p)}" loading="lazy" alt="${esc(p.caption)}">
-          <div class="cap">${esc(p.caption || '')}</div>
+          <img src="${photoSrc(p)}" loading="lazy" alt="">
         </div>`).join('')}
     </div>
     ${lightboxHTML(a)}
@@ -2152,7 +2158,7 @@ function showLb() {
   const p = lbList[lbIdx];
   if (!p) return;
   $('#lbImg').src = p.s;
-  $('#lbCap').textContent = p.c + '  (' + (lbIdx + 1) + '/' + lbList.length + ')';
+  $('#lbCap').textContent = (lbIdx + 1) + ' / ' + lbList.length;
   $('#lightbox').classList.add('on');
 }
 function closeLightbox() { const lb = $('#lightbox'); if (lb) lb.classList.remove('on'); }
