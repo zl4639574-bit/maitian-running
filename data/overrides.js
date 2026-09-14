@@ -2,7 +2,26 @@ window.TEAM_OVERRIDES = {
  "team": {},
  "honors": null,
  "activities": null,
- "hidden": [],
+ "hidden": [
+  "刘恒",
+  "付一然",
+  "师涵莹",
+  "张浩铖",
+  "朱伟俊",
+  "杨晨子",
+  "王俊尧",
+  "王艳",
+  "穆彦情",
+  "管清铄",
+  "谢国莹",
+  "邢凯杰",
+  "郭永超",
+  "陆小娟",
+  "李志宏",
+  "刘艳",
+  "张哲珩",
+  "贾可欣"
+ ],
  "memberEdits": {
   "郭家俊": {
    "college": "动物科技学院",
@@ -233,8 +252,7 @@ window.TEAM_OVERRIDES = {
    "major": "农学2101",
    "grade": "2021",
    "level": [
-    "正式",
-    "预备"
+    "正式"
    ]
   },
   "康家鹏": {
@@ -450,8 +468,7 @@ window.TEAM_OVERRIDES = {
    "major": "机械2207",
    "grade": "2022",
    "level": [
-    "正式",
-    "预备"
+    "正式"
    ]
   },
   "杨晨子": {
@@ -483,14 +500,33 @@ window.TEAM_OVERRIDES = {
    "major": "光电2201",
    "grade": "2022",
    "level": [
-    "正式",
-    "预备"
+    "正式"
    ]
   },
   "李志宏": {
    "college": "林学院",
    "major": "",
    "grade": "2023",
+   "level": [
+    "正式"
+   ]
+  },
+  "阿巴小洛": {
+   "level": [
+    "正式"
+   ]
+  },
+  "董佳乐": {
+   "level": [
+    "正式"
+   ]
+  },
+  "翁楠": {
+   "level": [
+    "正式"
+   ]
+  },
+  "吴立平": {
    "level": [
     "正式"
    ]
@@ -616,5 +652,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-14T14:22:45.633Z"
+ "updated": "2026-09-14T23:40:24.000Z"
 };
