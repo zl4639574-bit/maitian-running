@@ -10,6 +10,5 @@ window.TEAM_OVERRIDES = {
  "competitions": [],
  "hiddenRecords": [],
  "hall": null,
- "queue": null,
- "selfTest": 1789382691208
+ "queue": null
 };
