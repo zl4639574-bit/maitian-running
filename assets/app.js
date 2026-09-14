@@ -2459,7 +2459,11 @@ async function ghPut(cfg, path, b64, message) {
       if (r2.ok) { cfg.branch = alt; lsSet(LS_CFG, cfg); return r2.json(); }
       msg = await r2.text();
     }
-    throw new Error('写入 ' + path + ' 失败 ' + r.status + ' ' + msg.slice(0, 140));
+    const hint = (r.status === 401) ? '｜令牌无效或已过期，重新生成一个再粘一次'
+      : (r.status === 403) ? '｜权限不够：令牌的 Contents 要选 Read and write'
+        : (r.status === 404) ? '｜仓库名/分支名不对，或这个令牌没有该仓库的权限（最常见：自己还没被加为协作者）'
+          : (r.status === 409) ? '｜文件刚好被别处改过，等 10 秒重试一次即可' : '';
+    throw new Error('写入 ' + path + ' 失败 ' + r.status + hint + '　' + msg.slice(0, 140));
   }
   return r.json();
 }
