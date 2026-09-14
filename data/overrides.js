@@ -489,11 +489,20 @@ window.TEAM_OVERRIDES = {
   }
  },
  "results": [],
- "competitions": [],
+ "competitions": [
+  {
+   "id": "cmu14r7vj",
+   "name": "2025年杨凌农科城马拉松赛",
+   "date": "2025.4.15",
+   "event": "半马",
+   "note": "",
+   "records": []
+  }
+ ],
  "compRecords": {},
  "hiddenRecords": [],
  "hall": null,
  "queue": null,
  "photos": [],
- "updated": "2026-09-14T10:56:37.246Z"
+ "updated": "2026-09-14T10:59:16.406Z"
 };
