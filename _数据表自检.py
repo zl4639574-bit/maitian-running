@@ -56,17 +56,21 @@ def main():
         c.send("Emulation.setDeviceMetricsOverride", width=390, height=844, deviceScaleFactor=2, mobile=True)
 
         def load(i=0):
-            for _ in range(3):
-                ph.goto(c, "%scaptain/?r=%d%d#t=%s" % (SITE, int(time.time()), i, pl), wait=30)
-                if (c.js("location.href") or "").startswith("https://"):
-                    break
-            for _ in range(40):
-                time.sleep(0.5)
-                try:
-                    if int(str(c.js("document.querySelectorAll('.nav-item').length") or 0)) >= 3:
-                        return
-                except Exception:
-                    pass
+            for attempt in range(4):
+                for _ in range(3):
+                    ph.goto(c, "%scaptain/?r=%d%d%d#t=%s" % (SITE, int(time.time()), i, attempt, pl), wait=30)
+                    if (c.js("location.href") or "").startswith("https://"):
+                        break
+                for _ in range(60):
+                    time.sleep(0.5)
+                    try:
+                        if int(str(c.js("document.querySelectorAll('.nav-item').length") or 0)) >= 3:
+                            return True
+                    except Exception:
+                        pass
+                print("   ! 页面没渲染出来（第 %d 次），重试…" % (attempt + 1))
+                time.sleep(3)
+            return False
 
         load()
         # 清掉本机残留
@@ -174,6 +178,15 @@ def main():
         time.sleep(4)
         prev = c.js("(function(){var b=document.getElementById('dtBox');return b?b.innerText.replace(/\\s+/g,' ').slice(0,520):'(没有预览)';})()")
         print("    差异预览:", prev)
+        z = c.js(r"""(function(){
+  const wb = window.__wb;
+  const a1 = XLSX.utils.sheet_to_json(wb.Sheets['队员总表'], {header:1, raw:true, defval:''});
+  const a2 = XLSX.utils.sheet_to_json(wb.Sheets['成绩明细'], {header:1, raw:true, defval:''});
+  const p = buildFixPlan({'队员总表': a1, '成绩明细': a2});
+  return JSON.stringify({未改动的文件应为0: {队员: p.memberFix.length, 新增队员: p.addMember.length,
+    修正成绩: p.recFix.length, 删除成绩: p.recHide.length, 补录: p.recAdd.length, 跳过: p.skip.length}});
+})()""")
+        print("    【对照】未修改的导出文件导回:", z)
 
         print("    点「应用这些修正」…")
         r3 = c.js(r"""(async () => {
@@ -209,7 +222,8 @@ def main():
   await wait(1600);
   const q = document.getElementById('rosterQ');
   if (q) { q.value = '自检新同学'; q.dispatchEvent(new Event('input', {bubbles: true})); await wait(1200); }
-  out.新队员卡片 = (document.querySelector('.pcard') || {}).innerText ? document.querySelector('.pcard').innerText.replace(/\s+/g,' ').slice(0,90) : '(没找到)';
+  const cd = document.querySelector('.pcard');
+  out.新队员卡片 = cd ? cd.innerText.replace(/\s+/g,' ').slice(0,90) : '(没找到)';
   return JSON.stringify(out);
 })()""")
         print("   ", r4)

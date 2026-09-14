@@ -1689,15 +1689,16 @@ function buildFixPlan(sheets) {
         const comp = comps.filter(c => c.id === cid)[0] || {};
         const expDate = orig.date || comp.date || '';            // 导出时写进"日期"列的值
         const expNote = orig.rank || orig.note || '';            // 导出时写进"名次/备注"列的值
-        if (Math.abs(sec - oldSec) > 0.05 || (ev && ev !== orig.event) || date !== expDate || note !== expNote) {
+        if (Math.abs(sec - oldSec) > 0.05 || (ev && String(ev) !== String(orig.event || ''))
+            || String(date) !== String(expDate) || String(note) !== String(expNote)) {
           plan.recFix.push({
             cid: cid, hideKey: cid + '|' + name + '|' + oldSec,
             desc: name + ' ' + (orig.event || '') + ' ' + (orig.fmt || fmtSec(orig.sec))
                   + ' → ' + (ev || orig.event) + ' ' + fmtSec(sec),
             rec: { name: name, event: ev || orig.event, raw: rawRes, sec: sec, fmt: fmtSec(sec),
                    sex: orig.sex || '', college: orig.college || '',
-                   date: (date && date !== expDate) ? date : (orig.date || ''),
-                   note: (note && note !== expNote) ? note : (orig.note || orig.rank || ''), keep: true },
+                   date: (date && String(date) !== String(expDate)) ? date : (orig.date || ''),
+                   note: (note && String(note) !== String(expNote)) ? note : (orig.note || orig.rank || ''), keep: true },
           });
         }
         return;
@@ -1710,7 +1711,8 @@ function buildFixPlan(sheets) {
         const inLocal = (ovLocal().results || []).some(r => (r.uid || (r.name + '|' + r.sec)) === uid);
         if (!inLocal) cur._cloud = true;            // 云端发布过的：改/删都靠 hiddenResults
         if (isDel) { plan.recDel.push({ uid: uid, desc: name + ' ' + (cur.event || '') + ' ' + (cur.fmt || fmtSec(cur.sec)), cloud: !inLocal }); return; }
-        if (sec && (Math.abs(sec - Number(cur.sec)) > 0.05 || (ev && ev !== cur.event) || date !== (cur.date || ''))) {
+        if (sec && (Math.abs(sec - Number(cur.sec)) > 0.05 || (ev && String(ev) !== String(cur.event || ''))
+            || String(date) !== String(cur.date || ''))) {
           plan.recEdit.push({ uid: uid, desc: name + ' ' + (cur.event || '') + ' ' + (cur.fmt || fmtSec(cur.sec))
             + ' → ' + (ev || cur.event) + ' ' + fmtSec(sec),
             rec: Object.assign({}, cur, { event: ev || cur.event, raw: rawRes, sec: sec, fmt: fmtSec(sec),
