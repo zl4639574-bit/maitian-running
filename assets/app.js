@@ -1752,7 +1752,7 @@ function handlePhotos(files) {
     toast(parts.join('；') || '没有可用的图片', 12000);
   };
   list.forEach((f, i) => {
-    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name)) { skipped++; finish(); return; }
+    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(f.name)) { skipped++; finish(); return; }
     const img = new Image();
     const fr = new FileReader();
     fr.onerror = () => { bad.push(f.name); finish(); };
