@@ -779,6 +779,18 @@ function renderManage() {
       <button class="btn ghost" id="btnPush" ${pend ? '' : 'disabled'}>同步我的修改到线上</button>
       <button class="btn danger" id="btnResetLocal">丢弃本机修改</button>
     </div>
+
+    <div class="notice" style="margin-top:16px;line-height:1.9">
+      <b>还没有令牌？两步搞定：</b><br>
+      <button class="btn sm" id="btnMakeToken" style="margin:6px 0">① 一键打开建令牌页面（权限已勾好）</button><br>
+      在打开的页面点最下面 <b>Generate token</b> → 复制那串 <code>ghp_...</code> → 粘到上面的「访问令牌」→
+      点「保存设置」。<br>
+      <button class="btn sm" id="btnPhoneLink" style="margin:6px 0">② 生成我的手机专用链接</button><br>
+      把生成的链接<b>存到手机书签</b>。以后手机上打开这个书签，账号令牌就自动带着，
+      改完直接点「同步我的修改到线上」，<b>再也不用碰令牌</b>。
+      （这条链接等于你的管理钥匙，别发到群里。）
+    </div>
+    <div id="phoneBox" style="margin-top:12px"></div>
     <div class="notice" style="margin-top:16px">
       <b>访问令牌怎么弄：</b>GitHub 网页 → 头像 → Settings → Developer settings → Personal access tokens →
       <b>Fine-grained tokens</b> → Generate new token → Repository access 选这个仓库 → Permissions 里
@@ -1382,6 +1394,27 @@ function bindManage() {
     render();
   };
 
+  const bmt = $('#btnMakeToken');
+  if (bmt) bmt.onclick = () => {
+    window.open('https://github.com/settings/tokens/new?scopes=repo&description=' +
+      encodeURIComponent('麦田守望数据中心'), '_blank');
+    toast('在打开的页面点最下面 Generate token，复制 ghp_... 回来粘贴', 8000);
+  };
+  const bpl = $('#btnPhoneLink');
+  if (bpl) bpl.onclick = () => {
+    const box = $('#phoneBox'), c = ghCfg();
+    if (!c.token) { if (box) box.innerHTML = '<div class="notice">先把访问令牌填好并保存，再生成手机链接</div>'; return; }
+    const payload = { owner: c.owner, repo: c.repo, branch: c.branch, token: c.token };
+    const url = location.href.replace(/#.*$/, '') + '#t=' + b64uEncode(JSON.stringify(payload));
+    if (box) box.innerHTML = '<div class="field"><label>手机专用链接（存到手机书签，用它打开就不用再填令牌）</label>'
+      + '<textarea class="ta" rows="3" readonly>' + esc(url) + '</textarea></div>'
+      + '<button class="btn sm" id="btnCopyPhone">复制链接</button>'
+      + '<div class="tiny" style="margin-top:8px">手机上：打开链接 → 加书签/收藏 → 以后每次用书签进队长版即可。'
+      + '链接里带着令牌（放在网址 # 后面），不会被提交到仓库，但别外发。</div>';
+    const cb = $('#btnCopyPhone');
+    if (cb) cb.onclick = () => copyText(url);
+  };
+
   const pull = $('#btnPull');
   if (pull) pull.onclick = async () => {
     toast('正在读取线上数据…');
@@ -1823,6 +1856,20 @@ async function loadQueueCfg() {
   return !!(QUEUE_CFG && QUEUE_CFG.token && QUEUE_CFG.repo);
 }
 
+/** 队长页：链接里带 #t=... 时自动填好同步配置（手机书签免输令牌） */
+function loadCfgFromHash() {
+  const m = location.hash.match(/[#&]t=([A-Za-z0-9_\-]+)/);
+  if (!m) return false;
+  try {
+    const o = JSON.parse(b64uDecode(m[1]));
+    if (o && o.token && o.repo) {
+      lsSet(LS_CFG, { owner: o.owner || GH_DEF.owner, repo: o.repo, branch: o.branch || GH_DEF.branch, token: o.token });
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
 async function submitToQueue(recs) {
   if (!QUEUE_CFG || !QUEUE_CFG.token) throw new Error('还没开通队员直传');
   const id = 'q' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
@@ -1965,5 +2012,6 @@ document.addEventListener('keydown', e => {
   if ((TABS[MODE] || []).some(t => t[0] === h)) state.tab = h;
   await loadCloud(false);
   await loadQueueCfg();
+  if (MODE === 'captain' && loadCfgFromHash()) toast('已用链接里的账号自动填好，可以直接同步', 4000);
   render();
 })();
