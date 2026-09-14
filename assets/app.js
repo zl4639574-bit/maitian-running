@@ -766,9 +766,9 @@ function renderManage() {
       <br>你的修改会提交到这个仓库，GitHub Pages 会自动重新发布（约 1 分钟）。
     </div>
     <div class="grid2" style="margin:16px 0">
-      <div class="field"><label>GitHub 用户名</label><input data-cfg="owner" value="${esc(cfg.owner)}" placeholder="例如 zhanghao123"></div>
-      <div class="field"><label>仓库名</label><input data-cfg="repo" value="${esc(cfg.repo)}" placeholder="maitian-running"></div>
-      <div class="field"><label>分支</label><input data-cfg="branch" value="${esc(cfg.branch || 'main')}"></div>
+      <div class="field"><label>GitHub 用户名</label><input data-cfg="owner" value="${esc(cfg.owner || 'zl4639574-bit')}" placeholder="zl4639574-bit"></div>
+      <div class="field"><label>仓库名</label><input data-cfg="repo" value="${esc(cfg.repo || 'maitian-running')}" placeholder="maitian-running"></div>
+      <div class="field"><label>分支</label><input data-cfg="branch" value="${esc(cfg.branch || 'master')}" placeholder="master"></div>
       <div class="field"><label>访问令牌（只存在本机浏览器里）</label><input data-cfg="token" type="password" value="${esc(cfg.token)}" placeholder="github_pat_..."></div>
     </div>
     <div class="chips">
@@ -781,7 +781,7 @@ function renderManage() {
       <b>访问令牌怎么弄：</b>GitHub 网页 → 头像 → Settings → Developer settings → Personal access tokens →
       <b>Fine-grained tokens</b> → Generate new token → Repository access 选这个仓库 → Permissions 里
       <b>Contents 设为 Read and write</b> → 生成后复制 <code>github_pat_...</code> 粘到上面。
-      令牌只保存在这台设备的浏览器里，我不会看到，也不会写进网页。
+      用户名 / 仓库名 / 分支已经填好了，<b>你只要粘令牌 → 点「保存设置」</b>。<br>令牌只保存在这台设备的浏览器里，不会写进网页，别人看不到。
     </div>
   </div>` : ''}
 
