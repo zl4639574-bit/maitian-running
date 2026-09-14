@@ -1781,11 +1781,24 @@ async function ghRealBranch(cfg) {
 }
 
 /** 一键测试同步：写一条隐藏的自检标记 → 从网页回读 → 清除标记。不改动任何真实数据。 */
+/** 从仓库直接读一个文件（走接口，不受网页 CDN 缓存影响）——自检用 */
+async function ghGetText(cfg, path) {
+  try {
+    const r = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}?ref=${encodeURIComponent(cfg.branch || 'master')}&t=${Date.now()}`,
+      { headers: ghHeaders(cfg), cache: 'no-store' });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return decodeURIComponent(escape(atob(String(d.content || '').replace(/\s/g, ''))));
+  } catch (e) { return null; }
+}
+
+/** 一键测试同步：写一条隐藏的自检标记 → 从仓库读回确认 → 再看网页端缓存 → 清除标记。不改动任何真实数据。 */
 async function testSync() {
   const cfg = ghCfg();
   if (!cfg.token) return toast('先填访问令牌 → 保存设置，再点测试', 7000);
   const btn = $('#btnTest');
-  if (btn) { btn.disabled = true; btn.textContent = '测试中…（约 20 秒）'; }
+  const label = '测试同步（不改数据）';
+  if (btn) { btn.disabled = true; btn.textContent = '测试中…（最多 90 秒）'; }
   try {
     cfg.branch = await ghRealBranch(cfg); lsSet(LS_CFG, cfg);
     const base = CLOUD_OV || EMPTY_OV;
@@ -1793,29 +1806,44 @@ async function testSync() {
     const mk = (extra) => '/* 由队长版写入 */\nwindow.TEAM_OVERRIDES = ' +
       JSON.stringify(Object.assign({}, base, extra, { queue: null }), null, 1) + ';\n';
 
+    // ① 写入
     await ghPut(cfg, 'data/overrides.js', b64enc(mk({ selfTest: stamp })), '自检：写入测试标记');
-    let ok = false, got = 0;
-    for (let i = 0; i < 12; i++) {
+
+    // ② 从仓库读回（走接口，最可靠，不受网页缓存影响）
+    let apiOk = false;
+    for (let i = 0; i < 8; i++) {
+      const txt = await ghGetText(cfg, 'data/overrides.js');
+      if (txt && txt.indexOf('"selfTest": ' + stamp) >= 0) { apiOk = true; break; }
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    // ③ 网页端（GitHub Pages 有缓存，通常 30~90 秒才刷新）
+    let cdnOk = false;
+    for (let i = 0; i < 20; i++) {
       await new Promise(r => setTimeout(r, 3000));
+      if (btn) btn.textContent = '测试中…（等网页缓存 ' + ((i + 1) * 3) + 's）';
       try {
         const r = await fetch(ROOT + 'data/overrides.js?t=' + Date.now(), { cache: 'no-store' });
         if (r.ok) {
           const t = await r.text();
           const m = t.match(/=\s*([\s\S]*?);\s*$/);
           const o = m ? JSON.parse(m[1]) : {};
-          got = o.selfTest || 0;
-          if (got === stamp) { ok = true; break; }
+          if (o.selfTest === stamp) { cdnOk = true; break; }
         }
       } catch (e) {}
     }
+
+    // ④ 清除标记（不管结果如何都擦干净测试痕迹）
     await ghPut(cfg, 'data/overrides.js', b64enc(mk({})), '自检完成：清除测试标记');
     await loadCloud(true);
-    if (btn) { btn.disabled = false; btn.textContent = '测试同步（不改数据）'; }
+    if (btn) { btn.disabled = false; btn.textContent = label; }
     render();
-    if (ok) toast('✅ 测试通过：写入成功、网页也读到了，同步完全正常', 9000);
-    else toast('⚠️ 写入成功，但网页暂时没读到（可能 CDN 还在刷新）。等 1 分钟点「从线上拉取」再看，或把这段话发我', 12000);
+
+    if (apiOk && cdnOk) toast('✅ 测试通过：写入成功、网页端也读到了，同步完全正常', 9000);
+    else if (apiOk) toast('✅ 写入成功（仓库已确认读到）。网页端还在刷新缓存（GitHub 约 1 分钟），过一会儿刷新页面就能看到 —— 同步功能本身正常', 12000);
+    else toast('⚠️ 写入成功，但没能从仓库读回标记（可能是网络或令牌权限问题），把这段话发我', 12000);
   } catch (e) {
-    if (btn) { btn.disabled = false; btn.textContent = '测试同步（不改数据）'; }
+    if (btn) { btn.disabled = false; btn.textContent = label; }
     const msg = String(e && e.message || e);
     if (/Secret detected|secret_scanning/i.test(msg)) toast('被 GitHub 拦下：内容里被判定含密钥（把「队员直传」的历史配置清掉再试）', 10000);
     else toast('❌ 测试失败：' + msg, 12000);
