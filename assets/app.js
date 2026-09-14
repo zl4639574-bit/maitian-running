@@ -785,10 +785,11 @@ function renderManage() {
       <button class="btn sm" id="btnMakeToken" style="margin:6px 0">① 一键打开建令牌页面（权限已勾好）</button><br>
       在打开的页面点最下面 <b>Generate token</b> → 复制那串 <code>ghp_...</code> → 粘到上面的「访问令牌」→
       点「保存设置」。<br>
-      <button class="btn sm" id="btnPhoneLink" style="margin:6px 0">② 生成我的手机专用链接</button><br>
-      把生成的链接<b>存到手机书签</b>。以后手机上打开这个书签，账号令牌就自动带着，
-      改完直接点「同步我的修改到线上」，<b>再也不用碰令牌</b>。
-      （这条链接等于你的管理钥匙，别发到群里。）
+      <button class="btn sm" id="btnPhoneLink" style="margin:6px 0">② 生成我的专用链接（手机用 / 交接给下任队长）</button><br>
+      把生成的链接<b>存到手机书签</b>：以后手机上打开这个书签，账号就自动带着，
+      改完直接点「同步我的修改到线上」，<b>再也不用碰令牌，也不用 VPN</b>。<br>
+      <b>换届时</b>：把这条链接直接给下一任队长，他打开就能改数据、能同步，
+      <b>不用建账号、不用弄令牌</b>（当作管理钥匙保管，别发到群里）。
     </div>
     <div id="phoneBox" style="margin-top:12px"></div>
     <div class="notice" style="margin-top:16px">
@@ -1409,8 +1410,9 @@ function bindManage() {
     if (box) box.innerHTML = '<div class="field"><label>手机专用链接（存到手机书签，用它打开就不用再填令牌）</label>'
       + '<textarea class="ta" rows="3" readonly>' + esc(url) + '</textarea></div>'
       + '<button class="btn sm" id="btnCopyPhone">复制链接</button>'
-      + '<div class="tiny" style="margin-top:8px">手机上：打开链接 → 加书签/收藏 → 以后每次用书签进队长版即可。'
-      + '链接里带着令牌（放在网址 # 后面），不会被提交到仓库，但别外发。</div>';
+      + '<div class="tiny" style="margin-top:8px;line-height:1.9">手机上：打开链接 → 加书签 → 以后每次用书签进队长版即可，'
+      + '不用再填任何东西。<br>换届：把这条链接发给下一任队长就行（链接里带着权限，放在网址 # 后面，'
+      + '不会被提交到仓库，但别外发；想作废就在 GitHub 里把令牌删掉重新生成一条）。</div>';
     const cb = $('#btnCopyPhone');
     if (cb) cb.onclick = () => copyText(url);
   };
