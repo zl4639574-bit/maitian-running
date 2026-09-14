@@ -488,6 +488,19 @@ window.TEAM_OVERRIDES = {
    ]
   }
  },
+ "newMembers": [
+  {
+   "name": "自检新队员",
+   "sex": "男",
+   "college": "林学院",
+   "major": "林学2101",
+   "grade": "2023",
+   "level": [
+    "正式"
+   ],
+   "addedAt": "2026-09-14"
+  }
+ ],
  "results": [
   {
    "uid": "rmu114vax_1_vq0n",
@@ -606,5 +619,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-14T12:41:31.619Z"
+ "updated": "2026-09-14T12:55:16.472Z"
 };
