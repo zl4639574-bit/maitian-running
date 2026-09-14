@@ -780,23 +780,24 @@ function renderManage() {
       <button class="btn danger" id="btnResetLocal">丢弃本机修改</button>
     </div>
 
-    <div class="notice" style="margin-top:16px;line-height:1.9">
-      <b>还没有令牌？两步搞定：</b><br>
-      <button class="btn sm" id="btnMakeToken" style="margin:6px 0">① 一键打开建令牌页面（权限已勾好）</button><br>
-      在打开的页面点最下面 <b>Generate token</b> → 复制那串 <code>ghp_...</code> → 粘到上面的「访问令牌」→
-      点「保存设置」。<br>
-      <button class="btn sm" id="btnPhoneLink" style="margin:6px 0">② 生成我的专用链接（手机用 / 交接给下任队长）</button><br>
-      把生成的链接<b>存到手机书签</b>：以后手机上打开这个书签，账号就自动带着，
-      改完直接点「同步我的修改到线上」，<b>再也不用碰令牌，也不用 VPN</b>。<br>
-      <b>换届时</b>：把这条链接直接给下一任队长，他打开就能改数据、能同步，
-      <b>不用建账号、不用弄令牌</b>（当作管理钥匙保管，别发到群里）。
+    <div class="notice" style="margin-top:16px;line-height:2">
+      <b>第一次用，照着做三步（以后就不用管了）：</b><br>
+      <b>①</b> <button class="btn sm" id="btnMakeToken" style="margin:4px 6px 4px 0">一键打开建令牌页面（权限已勾好）</button><br>
+      　　打开的页面里：有效期选 <b>No expiration</b>（永久），点最下面 <b>Generate token</b>，复制那串 <code>ghp_...</code><br>
+      <b>②</b> 把 <code>ghp_...</code> 粘到上面「访问令牌」框 → 点「<b>保存设置</b>」<br>
+      <b>③</b> <button class="btn sm" id="btnPhoneLink" style="margin:4px 6px 4px 0">生成我的专用链接</button>
+      　→ 复制那条链接，<b>存到手机书签</b>（或微信发给自己）<br>
+      <span class="tiny">以后：手机上点书签打开 → 改数据 → 点「同步我的修改到线上」→ 1 分钟上线。
+      <b>不用再碰令牌、也不用 VPN</b>。<br>
+      换届：把这条链接直接给下一任队长，他打开就能改、能同步，不用建账号、不用弄令牌。
+      （链接等于管理钥匙，存好、别发群里；想作废就在 GitHub 删掉令牌重新生成一条）</span>
     </div>
     <div id="phoneBox" style="margin-top:12px"></div>
-    <div class="notice" style="margin-top:16px">
-      <b>访问令牌怎么弄：</b>GitHub 网页 → 头像 → Settings → Developer settings → Personal access tokens →
-      <b>Fine-grained tokens</b> → Generate new token → Repository access 选这个仓库 → Permissions 里
-      <b>Contents 设为 Read and write</b> → 生成后复制 <code>github_pat_...</code> 粘到上面。
-      用户名 / 仓库名 / 分支已经填好了，<b>你只要粘令牌 → 点「保存设置」</b>。<br>令牌只保存在这台设备的浏览器里，不会写进网页，别人看不到。
+    <div class="notice" style="margin-top:16px;line-height:1.9">
+      <span class="tiny">不想用一键按钮的话，手工也能建：GitHub → 头像 → Settings → Developer settings →
+      Personal access tokens → <b>Tokens (classic)</b> → Generate new token (classic) → 勾上 <b>repo</b> →
+      生成后复制 <code>ghp_...</code> 粘到上面的「访问令牌」。<br>
+      令牌只保存在这台设备的浏览器里，不会写进网页、也不会提交进仓库，我看不到。</span>
     </div>
   </div>` : ''}
 
