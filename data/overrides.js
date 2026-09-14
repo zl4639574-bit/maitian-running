@@ -1,4 +1,3 @@
-/* 由队长版写入 */
 window.TEAM_OVERRIDES = {
  "team": {},
  "honors": null,
@@ -489,7 +488,21 @@ window.TEAM_OVERRIDES = {
    ]
   }
  },
- "results": [],
+ "results": [
+  {
+   "uid": "selftest_pub",
+   "name": "同步自检甲",
+   "event": "5000米",
+   "raw": "18:30",
+   "sec": 1110,
+   "fmt": "18:30",
+   "date": "2026-09-14",
+   "meet": "一键发布自检",
+   "ts": 1789387626121,
+   "local": false,
+   "published": true
+  }
+ ],
  "competitions": [
   {
    "id": "cmu14r7vj",
@@ -505,5 +518,5 @@ window.TEAM_OVERRIDES = {
  "hall": null,
  "queue": null,
  "photos": [],
- "updated": "2026-09-14T10:59:16.406Z"
+ "updated": "2026-09-14T12:07:11.002Z"
 };
