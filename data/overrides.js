@@ -505,6 +505,5 @@ window.TEAM_OVERRIDES = {
  "hall": null,
  "queue": null,
  "photos": [],
- "updated": "2026-09-14T10:59:16.406Z",
- "selfTest": 1789387160402
+ "updated": "2026-09-14T10:59:16.406Z"
 };
