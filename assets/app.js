@@ -1406,6 +1406,13 @@ function bindManage() {
   const bpl = $('#btnPhoneLink');
   if (bpl) bpl.onclick = () => {
     const box = $('#phoneBox'), c = ghCfg();
+    if (location.protocol === 'file:') {      // 本地双击打开的页面：生成的链接手机打不开
+      if (box) box.innerHTML = '<div class="notice">⚠️ 你现在是<b>双击本地文件</b>打开的队长版，'
+        + '这样生成的链接是 <code>file:///E:/...</code> 开头的，<b>手机打不开</b>。<br>'
+        + '请改用线上网址打开队长版，再点这个按钮：<br>'
+        + '<code>https://zl4639574-bit.github.io/maitian-running/captain/</code></div>';
+      return;
+    }
     if (!c.token) { if (box) box.innerHTML = '<div class="notice">先把访问令牌填好并保存，再生成手机链接</div>'; return; }
     const payload = { owner: c.owner, repo: c.repo, branch: c.branch, token: c.token };
     const url = location.href.replace(/#.*$/, '') + '#t=' + b64uEncode(JSON.stringify(payload));
