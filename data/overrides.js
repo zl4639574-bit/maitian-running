@@ -488,21 +488,7 @@ window.TEAM_OVERRIDES = {
    ]
   }
  },
- "results": [
-  {
-   "uid": "selftest_pub",
-   "name": "同步自检甲",
-   "event": "5000米",
-   "raw": "18:30",
-   "sec": 1110,
-   "fmt": "18:30",
-   "date": "2026-09-14",
-   "meet": "一键发布自检",
-   "ts": 1789387626121,
-   "local": false,
-   "published": true
-  }
- ],
+ "results": [],
  "competitions": [
   {
    "id": "cmu14r7vj",
