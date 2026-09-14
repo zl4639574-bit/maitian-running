@@ -759,9 +759,10 @@ function renderManage() {
   <div class="card sec">
     <h2>同步到线上</h2>
     <div class="tiny" style="line-height:2">
-      当前状态：${SYNC_STATE === 'cloud' ? '✅ 已连接线上数据'
-        : SYNC_STATE === 'local' ? '⚠️ 线上还没有数据文件（第一次发布时会创建）'
-        : '⚠️ 读取线上数据失败（离线或网络问题），本机修改仍可用'}
+      当前状态：${SYNC_STATE === 'cloud' ? '✅ 已连上线上数据，改动可以同步'
+        : SYNC_STATE === 'local' ? (cfg.token ? '✅ 已配好令牌，可以同步（线上还没有数据文件，你第一次点同步时会自动创建）'
+                                              : '⚠️ 还没配令牌，先按下面填好')
+        : '⚠️ 读取线上数据失败（离线或网络问题），本机修改仍然可用'}
        <br>线上仓库：<b>${esc(cfg.owner)} / ${esc(cfg.repo)}</b>（分支 ${esc(cfg.branch)}）
        <br>访问令牌：${cfg.token ? '<b style="color:var(--field)">✅ 已填写</b>' : '<b style="color:#c0392b">⚠️ 还没填，同步不了</b>'}
       <br>你的修改会提交到这个仓库，GitHub Pages 会自动重新发布（约 1 分钟）。
