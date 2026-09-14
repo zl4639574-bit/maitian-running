@@ -1057,7 +1057,10 @@ function render() {
   renderNav();
   const map = { home: renderHome, board: renderBoard, roster: renderRoster, upload: renderUpload,
                 manage: renderManage, photos: renderPhotos, about: renderAbout };
-  $('#page').innerHTML = (map[state.tab] || renderHome)();
+  $('#page').innerHTML = (map[state.tab] || renderHome)()
+    + `<div class="foot">${esc(teamInfo().name || '')} · 数据中心
+         <br><a href="${ROOT}guide.txt" target="_blank">📖 ${MODE === 'view' ? '使用说明' : '使用说明（怎么上传 / 怎么改）'}</a>
+         <br><span style="opacity:.7">数据更新于 ${esc(BASE.generated || '')}</span></div>`;
   if (state.tab === 'upload') bindUpload();
   if (state.tab === 'manage') bindManage();
   window.scrollTo({ top: 0, behavior: 'smooth' });
