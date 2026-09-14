@@ -879,21 +879,25 @@ function renderManage() {
       <b>几分钟后自动进全队的成绩榜</b>，不需要队长操作。<br>
       原理：队员的成绩先提交到一个专门的「收集仓库」，再由 GitHub 每 10 分钟自动合并进网站数据。
       提交用的令牌只能操作那个收集仓库，动不了网站代码，可以放心贴在网页里。<br>
-      当前状态：${(ov().queue && ov().queue.token) ? '<b style="color:var(--field)">✅ 已开通</b>' : '⚠️ 未开通'}
+      当前状态：${(qcfgGet() && qcfgGet().token) ? '<b style="color:var(--field)">✅ 已开通（令牌存在这台设备上，没上传）</b>' : '⚠️ 未开通'}
     </div>
     <div class="grid2" style="margin-bottom:14px">
-      <div class="field"><label>收集仓库名</label><input id="q_repo" value="${esc((ov().queue && ov().queue.repo) || 'maitian-run-queue')}"></div>
-      <div class="field"><label>分支</label><input id="q_branch" value="${esc((ov().queue && ov().queue.branch) || 'main')}"></div>
+      <div class="field"><label>收集仓库名</label><input id="q_repo" value="${esc((qcfgGet() && qcfgGet().repo) || 'maitian-run-queue')}"></div>
+      <div class="field"><label>分支</label><input id="q_branch" value="${esc((qcfgGet() && qcfgGet().branch) || 'main')}"></div>
       <div class="field" style="grid-column:1/-1"><label>收集仓库令牌（Contents: Read and write）</label>
-        <input id="q_token" placeholder="github_pat_..." value="${esc((ov().queue && ov().queue.token) || '')}"></div>
+        <input id="q_token" placeholder="github_pat_..." value="${esc((qcfgGet() && qcfgGet().token) || '')}"></div>
     </div>
-    <button class="btn" id="btnSaveQueue">保存并开通</button>
+    <button class="btn" id="btnSaveQueue">保存令牌（只存这台设备）</button>
+    <button class="btn" id="btnMakeLink" style="margin-left:8px">生成队员专用链接</button>
     <button class="btn danger sm" id="btnClearQueue" style="margin-left:8px">关闭直传</button>
+    <div id="linkBox" style="margin-top:14px"></div>
     <div class="notice" style="margin-top:16px">
       <b>令牌怎么弄：</b>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens →
       Generate new token → Repository access 只勾 <code>maitian-run-queue</code> →
       Permissions 里 <b>Contents = Read and write</b> → 生成后粘到上面。
-      这个令牌只对这个收集仓库有效，泄出去最多有人往里面塞垃圾成绩，队长删掉就行。
+      <b>令牌只存在你这台设备的浏览器里，不会写进网页、也不会提交进仓库</b>（GitHub 的密钥扫描也不允许）。
+      开通后点「生成队员专用链接」，把链接发到群里 —— 队员用那条链接打开会出现「提交给全队」按钮。
+      这个令牌只能往收集仓库写成绩，动不了网站代码。
     </div>
   </div>` : ''}
 
@@ -1527,18 +1531,28 @@ function bindManage() {
   if (sbq) sbq.onclick = () => {
     const t = ($('#q_token').value || '').trim();
     if (!t) return toast('请先填收集仓库令牌');
-    ovLocal().queue = { owner: (lsGet(LS_CFG, {}) || {}).owner || 'zl4639574-bit',
-                        repo: ($('#q_repo').value || '').trim() || 'maitian-run-queue',
-                        branch: ($('#q_branch').value || '').trim() || 'main', token: t };
-    saveLocalOv();
-    toast('已保存，点上面的「同步我的修改到线上」发布给所有人', 4200);
+    qcfgSet({ owner: ghCfg().owner,
+              repo: ($('#q_repo').value || '').trim() || 'maitian-run-queue',
+              branch: ($('#q_branch').value || '').trim() || 'main', token: t });
+    toast('令牌已存在这台设备上（不会上传到仓库）', 4200);
     render();
+  };
+  const bml = $('#btnMakeLink');
+  if (bml) bml.onclick = () => {
+    const box = $('#linkBox'), q = qcfgGet();
+    if (!q || !q.token) { if (box) box.innerHTML = '<div class="notice">先填令牌并保存，再生成链接</div>'; return; }
+    const url = memberLink(q);
+    if (box) box.innerHTML = '<div class="field"><label>队员专用链接（发到群里，队员点开就能提交成绩）</label>'
+      + '<textarea class="ta" rows="3" readonly>' + esc(url) + '</textarea></div>'
+      + '<button class="btn sm" id="btnCopyLink">复制链接</button>'
+      + '<div class="tiny" style="margin-top:8px">队员第一次用这条链接打开后，提交按钮会一直记在他手机上（以后用普通队员版网址也行）。</div>';
+    const cb = $('#btnCopyLink');
+    if (cb) cb.onclick = () => copyText(url);
   };
   const cbq = $('#btnClearQueue');
   if (cbq) cbq.onclick = () => {
     if (!confirm('关闭队员直传？（队员版的提交按钮会消失）')) return;
-    ovLocal().queue = { owner: '', repo: '', branch: '', token: '' };
-    saveLocalOv(); toast('已关闭'); render();
+    qcfgSet(null); toast('已关闭'); render();
   };
 
   // ---- 比赛成绩管理 ----
@@ -1771,7 +1785,7 @@ async function pushToGitHub() {
       compRecords: mergeCompRecords(cloud.compRecords, l.compRecords),
       hiddenRecords: Array.from(new Set((cloud.hiddenRecords || []).concat(l.hiddenRecords || []))),
       hall: (l.hall || cloud.hall || null),
-      queue: (l.queue || cloud.queue || null),
+      queue: null,          // 令牌绝不写进仓库（GitHub 密钥扫描会拦截，也不安全）
       photos: (cloud.photos || []).concat((l.photos || []).map(p => {
         const { data, size, ...rest } = p;
         return rest;                      // 图片本体单独提交，引用文件名
@@ -1789,10 +1803,6 @@ async function pushToGitHub() {
     // 3) 再传数据
     const ovB64 = btoa(unescape(encodeURIComponent('window.TEAM_OVERRIDES = ' + JSON.stringify(merged, null, 1) + ';\n')));
     await ghPut(cfg, 'data/overrides.js', ovB64, '更新队伍数据（队伍信息/荣誉/名册/成绩/照片）');
-    if (merged.queue) {          // 队员直传的配置单独一个文件，队员版直接读
-      const qB64 = btoa(unescape(encodeURIComponent('window.QUEUE_CFG = ' + JSON.stringify(merged.queue) + ';\n')));
-      await ghPut(cfg, 'data/queue-config.js', qB64, '更新队员直传配置');
-    }
     CLOUD_OV = merged;
     LOCAL_OV = {};
     lsSet(LS_LOCAL, {});
@@ -1800,24 +1810,47 @@ async function pushToGitHub() {
     render();
   } catch (e) {
     console.error(e);
-    toast('同步失败：' + e.message, 6000);
+    const msg = String(e && e.message || '');
+    if (/Secret detected|secret_scanning/i.test(msg)) {
+      toast('同步被 GitHub 拦下了：内容里被判定含密钥。请到「队员直传」点「关闭直传」，再点一次同步。', 9000);
+    } else {
+      toast('同步失败：' + msg, 7000);
+    }
     if (btn) { btn.disabled = false; btn.textContent = '同步我的修改到线上'; }
   }
 }
 
 /* ------------------------------------------------- 队员直传（不经过队长） */
 
-let QUEUE_CFG = null;      // 从 data/queue-config.js 读到的收集仓库配置
+let QUEUE_CFG = null;      // 队员直传配置（令牌只来源：专用链接 or 本机保存，绝不来自仓库文件）
+
+const LS_QUEUE = 'mt_queue_v1';
+
+function qcfgGet() { return lsGet(LS_QUEUE, null); }
+function qcfgSet(o) { if (o) lsSet(LS_QUEUE, o); else localStorage.removeItem(LS_QUEUE); }
+function b64uEncode(str) {
+  return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64uDecode(str) {
+  try { return decodeURIComponent(escape(atob(String(str).replace(/-/g, '+').replace(/_/g, '/')))); }
+  catch (e) { return ''; }
+}
+/** 队长生成给队员的专用链接：令牌放在 # 后面，不会提交到仓库 */
+function memberLink(q) {
+  const base = location.href.replace(/captain\/?[^/]*$/, '');
+  return base + 'member/#q=' + b64uEncode(JSON.stringify(q));
+}
 
 async function loadQueueCfg() {
-  try {
-    const r = await fetch(ROOT + 'data/queue-config.js?t=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) return false;
-    const t = await r.text();
-    const m = t.match(/window\.QUEUE_CFG\s*=\s*([\s\S]*?);\s*$/);
-    QUEUE_CFG = m ? JSON.parse(m[1]) : null;
-    return !!(QUEUE_CFG && QUEUE_CFG.token && QUEUE_CFG.repo);
-  } catch (e) { return false; }
+  const m = location.hash.match(/[#&]q=([A-Za-z0-9_\-]+)/);      // 1) 专用链接
+  if (m) {
+    try {
+      const o = JSON.parse(b64uDecode(m[1]));
+      if (o && o.token && o.repo) { QUEUE_CFG = o; qcfgSet(o); }   // 记在这台设备上，以后普通链接也能用
+    } catch (e) {}
+  }
+  if (!QUEUE_CFG) QUEUE_CFG = qcfgGet();                         // 2) 本机保存过
+  return !!(QUEUE_CFG && QUEUE_CFG.token && QUEUE_CFG.repo);
 }
 
 async function submitToQueue(recs) {
