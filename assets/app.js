@@ -2710,16 +2710,28 @@ async function submitMine() {
 
 /* ------------------------------------------------------------ 初始化 */
 
+/* 双击本地文件打开时（file://）浏览器不允许 fetch 本地文件；此时用 <script> 载入的
+   window.TEAM_OVERRIDES 兜底，保证本地打开的页面也显示同步过的数据 */
+function cloudFromScriptTag() {
+  if (window.TEAM_OVERRIDES && typeof window.TEAM_OVERRIDES === 'object') {
+    CLOUD_OV = window.TEAM_OVERRIDES;
+    SYNC_STATE = 'cloud';
+    return true;
+  }
+  return false;
+}
+
 async function loadCloud(force) {
   try {
     const r = await fetch(ROOT + 'data/overrides.js?t=' + Date.now(), { cache: force ? 'reload' : 'no-store' });
-    if (!r.ok) { SYNC_STATE = 'local'; return false; }
+    if (!r.ok) { if (cloudFromScriptTag()) return true; SYNC_STATE = 'local'; return false; }
     const txt = await r.text();
     const m = txt.match(/window\.TEAM_OVERRIDES\s*=\s*([\s\S]*?);\s*$/);
     CLOUD_OV = m ? JSON.parse(m[1]) : null;
     SYNC_STATE = CLOUD_OV ? 'cloud' : 'local';
     return true;
   } catch (e) {
+    if (cloudFromScriptTag()) return true;
     SYNC_STATE = 'offline';
     return false;
   }
