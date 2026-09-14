@@ -598,7 +598,13 @@ window.TEAM_OVERRIDES = {
    "albumDate": "2026",
    "file": "up_1789388713498_12.jpg",
    "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789389670087_0.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-14T12:31:17.699Z"
+ "updated": "2026-09-14T12:41:31.619Z"
 };
