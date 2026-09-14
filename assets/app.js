@@ -738,7 +738,7 @@ function renderManage() {
     ? m.name.includes(state.mRosterQ) : (m.level || []).some(l => l === '正式' || l === '预备')).slice(0, 60);
   const removed = ros.filter(m => hiddenSet.has(m.name));
   const added = o.results;
-  const cfg = lsGet(LS_CFG, { owner: '', repo: '', branch: 'main', token: '' });
+  const cfg = lsGet(LS_CFG, { owner: '', repo: '', branch: 'master', token: '' });
   const pend = pendingCount();
 
   const SEC = [['sync', '同步'], ['comp', '比赛成绩'], ['queue', '队员直传'], ['team', '队伍信息'],
@@ -1385,7 +1385,7 @@ function saveLocalOv() {
 }
 
 function bindManage() {
-  const cfg = lsGet(LS_CFG, { owner: '', repo: '', branch: 'main', token: '' });
+  const cfg = lsGet(LS_CFG, { owner: '', repo: '', branch: 'master', token: '' });
   $$('[data-cfg]').forEach(el => el.onchange = () => {
     cfg[el.dataset.cfg] = el.value.trim();
     lsSet(LS_CFG, cfg);
