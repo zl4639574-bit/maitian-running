@@ -488,7 +488,6 @@ window.TEAM_OVERRIDES = {
    ]
   },
   "李志宏": {
-   "sex": "男",
    "college": "林学院",
    "major": "",
    "grade": "2023",
@@ -617,5 +616,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-14T14:06:26.986Z"
+ "updated": "2026-09-14T14:22:41.268Z"
 };
