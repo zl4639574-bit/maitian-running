@@ -524,6 +524,15 @@ window.TEAM_OVERRIDES = {
    "grade": "",
    "level": [],
    "sex": "女"
+  },
+  "王涛": {
+   "college": "生命科学学院",
+   "major": "生物工程",
+   "grade": "2824",
+   "level": [
+    "正式"
+   ],
+   "sex": "男"
   }
  },
  "newMembers": [],
@@ -680,5 +689,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T02:27:41.780Z"
+ "updated": "2026-09-15T02:29:54.108Z"
 };
