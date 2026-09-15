@@ -392,6 +392,7 @@ const state = {
   manageSec: 'sync',
   mRosterQ: '',
   mComp: '',                                  // 数据管理里选中的比赛
+  mFillMode: '',                              // 完善信息：'' 收起 / 'lack' 只列信息不全 / 'all' 列全部
 };
 
 const MEDAL = ['', 'g1', 'g2', 'g3'];
@@ -845,6 +846,7 @@ function renderManage() {
   const added = o.results;
   const cfg = ghCfg();
   const pend = pendingCount();
+  const lackSexCount = rosterList().filter(m => !String(m.sex || '').trim()).length;
 
   const SEC = [['sync', '同步'], ['comp', '比赛成绩'], ['team', '队伍信息'],
                ['honors', '荣誉'], ['hall', '优秀队员'], ['member', '队员名册'], ['table', '数据表'],
@@ -1110,6 +1112,23 @@ function renderManage() {
       </div>
     </div>
 
+    <div class="notice" style="margin-bottom:18px">
+      <b>＋ 完善队员信息（补齐 性别 / 学院 / 专业 / 年级）</b>
+      <div class="tiny" style="margin:8px 0">
+        当初只填了个名字、信息没填全的队员，在这里补齐就行。名册现在 ${rosterList().length} 人，
+        其中 <b>${lackInfoList().length}</b> 人信息不全${lackSexCount ? '（缺性别 ' + lackSexCount + ' 人）' : ''}。
+      </div>
+      <div class="chips">
+        <button class="btn" id="btnFillList">列出信息不全的 ${lackInfoList().length} 人</button>
+        <button class="btn ghost" id="btnFillAll">列出名册全部 ${rosterList().length} 人</button>
+      </div>
+      <div id="fillBox">${state.mFillMode ? fillTableHtml(state.mFillMode) : ''}</div>
+      <div class="tiny" style="margin-top:14px">批量补全：一行一条 <b>姓名,性别,学院,专业,年级</b>（不补的列就空着或少写；有表头会自动认列）</div>
+      <textarea class="ta" id="fillBatch" rows="4" placeholder="阿巴小洛,男&#10;汪楷,男,水保所,水保2201,2020"></textarea>
+      <div class="chips" style="margin-top:10px"><button class="btn ghost" id="btnFillPreview">解析并预览</button></div>
+      <div id="fillBatchBox"></div>
+    </div>
+
     <div class="mgrid">
       ${editList.map(m => {
         const e = m._isNew ? m : (o.memberEdits[m.name] || {});
@@ -1121,6 +1140,10 @@ function renderManage() {
             <span class="tagbadge ${(m.level || []).some(l => l === '正式' || l === '预备') ? 'wheat' : ''}">${esc((m.level || []).join('/') || '未分级')}</span>
           </div>
           <div class="mrow-f">
+            <select ${k} data-mf="sex">
+              ${[['', '性别—'], ['男', '男'], ['女', '女']].map(([v, l]) =>
+                `<option value="${v}" ${((e.sex != null ? e.sex : (m.sex || '')) || '') === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
             <input ${k} data-mf="college" value="${esc(e.college != null ? e.college : (m.college || ''))}" placeholder="学院">
             <input ${k} data-mf="major" value="${esc(e.major != null ? e.major : (m.major || ''))}" placeholder="专业">
             <input ${k} data-mf="grade" value="${esc(e.grade != null ? e.grade : (m.grade || ''))}" placeholder="年级" class="w60">
@@ -1591,6 +1614,230 @@ function addCompRecords(compId, recs) {
   saveLocalOv();
   return l;
 }
+/**
+ * 收集名册管理区里所有内联修改并写进本机草稿：
+ * 学院 / 专业 / 年级 / 性别 / 身份（性别以前没保存，是 bug，这里补上）
+ * 返回改动人数。
+ */
+function saveRosterEdits() {
+  const l = ovLocal();
+  const edits = l.memberEdits || (l.memberEdits = {});
+  const byName = {};
+  $$('[data-me]').forEach(el => {
+    const n = el.dataset.me, f = el.dataset.mf;
+    byName[n] = byName[n] || {};
+    byName[n][f] = el.value;
+  });
+  Object.entries(byName).forEach(([n, f]) => {
+    const lvl = (f.level || '').split(',').map(x => x.trim()).filter(Boolean);
+    const base = (BASE.roster || []).find(m => m.name === n) || {};
+    const out = Object.assign({}, edits[n] || {}, {
+      college: f.college, major: f.major, grade: f.grade,
+      level: lvl.length ? lvl : (base.level || []).filter(x => x === '正式' || x === '预备'),
+    });
+    if (f.sex !== undefined) out.sex = f.sex;          // 性别也能补了
+    edits[n] = out;
+  });
+  // 队长新加的队员：按 uid 精确保存（同名也不会互相覆盖）
+  const byUid = {};
+  $$('[data-muid]').forEach(el => {
+    const u = el.dataset.muid, f = el.dataset.mf;
+    byUid[u] = byUid[u] || {};
+    byUid[u][f] = el.value;
+  });
+  Object.entries(byUid).forEach(([u, f]) => {
+    const nm = (l.newMembers || []).find(m => (m.uid || m.name) === u);
+    if (!nm) return;
+    nm.college = f.college; nm.major = f.major; nm.grade = f.grade;
+    if (f.sex !== undefined) nm.sex = f.sex;
+    const lvl = (f.level || '').split(',').map(x => x.trim()).filter(Boolean);
+    nm.level = lvl.length ? lvl : (nm.level || ['正式']);
+  });
+  // 「完善队员信息」表的值优先级更高：同一个人的两个编辑区同时存在时，以补全表填的为准
+  // （只覆盖非空值，避免补全表里空着的一项把列表里已有的内容清掉）
+  const fByName = {};
+  $$('[data-fme]').forEach(el => {
+    const n = el.dataset.fme, f = el.dataset.mf;
+    fByName[n] = fByName[n] || {};
+    fByName[n][f] = el.value;
+  });
+  Object.entries(fByName).forEach(([n, f]) => {
+    const prev = edits[n] || (edits[n] = {});
+    FILL_FIELDS.forEach(k => {
+      if (f[k] !== undefined && String(f[k]).trim() !== '') prev[k] = String(f[k]).trim();
+    });
+  });
+  const fByUid = {};
+  $$('[data-fmuid]').forEach(el => {
+    const u = el.dataset.fmuid, f = el.dataset.mf;
+    fByUid[u] = fByUid[u] || {};
+    fByUid[u][f] = el.value;
+  });
+  Object.entries(fByUid).forEach(([u, f]) => {
+    const nm = (l.newMembers || []).find(m => (m.uid || m.name) === u);
+    if (!nm) return;
+    FILL_FIELDS.forEach(k => {
+      if (f[k] !== undefined && String(f[k]).trim() !== '') nm[k] = String(f[k]).trim();
+    });
+  });
+  saveLocalOv();
+  return Object.keys(byName).length + Object.keys(byUid).length;
+}
+
+/* ---------------- 完善队员信息（补齐 性别 / 学院 / 专业 / 年级）---------------- */
+
+const FILL_FIELDS = ['sex', 'college', 'major', 'grade'];
+let fillBatchRows = null;
+
+/** 名册（正式/预备）里信息不全的人 */
+function lackInfoList() {
+  return rosterList().filter(m => FILL_FIELDS.some(f => !String(m[f] || '').trim()));
+}
+function isNewMember(m) {
+  return (ov().newMembers || []).some(x => (x.uid || x.name) === (m.uid || m.name));
+}
+/** 完善信息内联表格（复用名册管理那套 data-me / data-muid / data-mf，保存走 saveRosterEdits） */
+function fillTableHtml(mode) {
+  const list = mode === 'all' ? rosterList() : lackInfoList();
+  if (!list.length) return '<div class="notice" style="margin-top:12px">名册里的信息都齐了 ✅</div>';
+  return `
+    <div class="tiny" style="margin:12px 0 8px">共 <b>${list.length}</b> 人，直接在这里补，补完点下面的「保存这些修改」。</div>
+    <div class="tbl-wrap" style="max-height:420px;overflow:auto">
+      <table class="tbl" style="min-width:auto"><thead><tr>
+        <th class="no-sort">姓名</th><th class="no-sort">性别</th><th class="no-sort">学院</th>
+        <th class="no-sort hide-sm">专业</th><th class="no-sort hide-sm">年级</th>
+      </tr></thead><tbody>
+      ${list.map(m => {
+        const k = isNewMember(m) ? ('data-fmuid="' + esc(m.uid || m.name) + '"') : ('data-fme="' + esc(m.name) + '"');
+        const lack = FILL_FIELDS.filter(f => !String(m[f] || '').trim());
+        return `<tr>
+          <td><b>${esc(m.name)}</b>${lack.length ? '<span class="tiny" style="margin-left:6px;color:var(--wheat)">缺 ' + lack.length + ' 项</span>' : ''}</td>
+          <td><select ${k} data-mf="sex">
+            ${[['', '—'], ['男', '男'], ['女', '女']].map(([v, l]) =>
+              `<option value="${v}" ${(m.sex || '') === v ? 'selected' : ''}>${l}</option>`).join('')}
+          </select></td>
+          <td><input ${k} data-mf="college" value="${esc(m.college || '')}" placeholder="学院"></td>
+          <td class="hide-sm"><input ${k} data-mf="major" value="${esc(m.major || '')}" placeholder="专业"></td>
+          <td class="hide-sm"><input ${k} data-mf="grade" value="${esc(m.grade || '')}" placeholder="年级" class="w60"></td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>
+    </div>
+    <div class="chips" style="margin-top:12px">
+      <button class="btn" id="btnFillSave">保存这些修改</button>
+      <span class="tiny">保存后点「同步我的修改到线上」发布给全队</span>
+    </div>`;
+}
+
+/** 批量补全：一行一条 姓名,性别,学院,专业,年级（表头自动认列；不填的列 = 不改） */
+function fillParseText(txt) {
+  const rows = [], skip = [];
+  // 默认按位置认列：姓名,性别,学院,专业,年级；第一行是表头时再按表头认列
+  const dir = { name: 0, sex: 1, college: 2, major: 3, grade: 4 };
+  String(txt || '').split(/\r?\n/).forEach((line, i) => {
+    const t = line.trim();
+    if (!t) return;
+    const p = t.split(/[\t,，、]+/).map(x => x.trim());
+    if (i === 0 && /姓名|名字/.test(p[0] || '')) {
+      p.forEach((h, idx) => {
+        if (/姓名|名字/.test(h)) dir.name = idx;
+        else if (/性别/.test(h)) dir.sex = idx;
+        else if (/学院/.test(h)) dir.college = idx;
+        else if (/专业/.test(h)) dir.major = idx;
+        else if (/年级/.test(h)) dir.grade = idx;
+      });
+      return;
+    }
+    const g = k => (dir[k] === undefined ? '' : (p[dir[k]] || '')).trim();
+    const name = (p[dir.name] || '').trim();
+    if (!name) { skip.push('第' + (i + 1) + '行没写姓名'); return; }
+    const o = { name: name };
+    const sex = g('sex');
+    if (sex === '男' || sex === '女') o.sex = sex;
+    else if (sex) skip.push('第' + (i + 1) + '行「' + name + '」性别「' + sex + '」认不出（只能填 男/女）');
+    if (g('college')) o.college = g('college');
+    if (g('major')) o.major = g('major');
+    if (g('grade')) o.grade = g('grade').replace(/[^0-9]/g, '') || g('grade');
+    if (Object.keys(o).length === 1) { skip.push('第' + (i + 1) + '行「' + name + '」没有要补的信息'); return; }
+    rows.push(o);
+  });
+  const byName = {};
+  rosterList().forEach(m => { byName[m.name] = byName[m.name] || []; byName[m.name].push(m); });
+  let matched = 0;
+  rows.forEach(r => {
+    const hit = byName[r.name] || [];
+    r._hit = hit.length;
+    r._cols = Object.keys(r).filter(x => x !== 'name' && x.indexOf('_') !== 0);
+    if (hit.length) matched++;
+    r._memo = !hit.length ? '名册里没有这个人（不会写入）'
+      : (hit.length > 1 ? '名册里有 ' + hit.length + ' 个同名 → 都会更新' : '');
+  });
+  return { rows: rows, skip: skip, matched: matched };
+}
+
+function applyFill(rows) {
+  const l = ovLocal();
+  let touched = 0;
+  (rows || []).forEach(r => {
+    if (!r._hit) return;
+    const hit = rosterList().filter(m => m.name === r.name);
+    hit.forEach(m => {
+      if (isNewMember(m)) {
+        const nm = (l.newMembers || []).find(x => (x.uid || x.name) === (m.uid || m.name));
+        if (!nm) return;
+        FILL_FIELDS.forEach(f => { if (r[f]) nm[f] = r[f]; });
+      } else {
+        l.memberEdits = l.memberEdits || {};
+        const e = l.memberEdits[r.name] = l.memberEdits[r.name] || {};
+        FILL_FIELDS.forEach(f => { if (r[f]) e[f] = r[f]; });
+      }
+      touched++;
+    });
+  });
+  saveLocalOv();
+  return touched;
+}
+
+function renderFillBatch() {
+  const box = $('#fillBatchBox');
+  if (!box) return;
+  const d = fillBatchRows || { rows: [], skip: [], matched: 0 };
+  if (!d.rows.length) {
+    box.innerHTML = '<div class="notice" style="margin-top:12px">没解析出可用的行'
+      + (d.skip.length ? '：' + esc(d.skip.slice(0, 3).join('；')) : '')
+      + '。每行至少要有姓名 + 要补的一项。</div>';
+    return;
+  }
+  const label = { sex: '性别', college: '学院', major: '专业', grade: '年级' };
+  const skipTxt = d.skip.length ? '；跳过 ' + d.skip.length + ' 条：' + esc(d.skip.slice(0, 3).join('；')) : '';
+  box.innerHTML = `
+    <div class="tiny" style="margin:12px 0 8px">
+      解析出 <b>${d.rows.length}</b> 行，其中 <b>${d.matched}</b> 行能在名册里找到人${skipTxt}</div>
+    <div class="tbl-wrap" style="max-height:280px;overflow:auto">
+      <table class="tbl" style="min-width:auto"><thead><tr>
+        <th class="no-sort">姓名</th><th class="no-sort">要补的</th><th class="no-sort hide-sm">说明</th>
+      </tr></thead><tbody>
+      ${d.rows.slice(0, 80).map(r => `<tr>
+        <td><b>${esc(r.name)}</b>${r._hit ? '' : '<span class="tiny" style="color:#c0392b;margin-left:6px">不在名册里</span>'}</td>
+        <td class="tiny">${esc(r._cols.map(c => label[c] + '=' + r[c]).join('，'))}</td>
+        <td class="tiny hide-sm">${r._hit ? esc(r._memo) : '<span style="color:#c0392b">' + esc(r._memo) + '</span>'}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div>
+    <div class="chips" style="margin-top:12px">
+      <button class="btn" id="btnFillConfirm">补全这 ${d.matched} 人</button>
+      <button class="btn ghost" id="btnFillCancel">取消</button>
+    </div>`;
+  const ok = $('#btnFillConfirm'), no = $('#btnFillCancel');
+  if (no) no.onclick = () => { fillBatchRows = null; render(); };
+  if (ok) ok.onclick = () => {
+    const n = applyFill(d.rows);
+    fillBatchRows = null;
+    toast('已补全 ' + n + ' 人 —— 记得点「同步我的修改到线上」发布', 10000);
+    render();
+  };
+}
+
 function pendingCount() {
   const l = LOCAL_OV || {};
   let n = 0;
@@ -2193,36 +2440,9 @@ function bindManage() {
 
   const sm = $('#btnSaveMembers');
   if (sm) sm.onclick = () => {
-    const edits = ovLocal().memberEdits || (ovLocal().memberEdits = {});
-    const byName = {};
-    $$('[data-me]').forEach(el => {
-      const n = el.dataset.me, f = el.dataset.mf;
-      byName[n] = byName[n] || {};
-      byName[n][f] = el.value;
-    });
-    Object.entries(byName).forEach(([n, f]) => {
-      const lvl = (f.level || '').split(',').map(s => s.trim()).filter(Boolean);
-      const base = (BASE.roster || []).find(m => m.name === n) || {};
-      edits[n] = {
-        college: f.college, major: f.major, grade: f.grade,
-        level: lvl.length ? lvl : (base.level || []).filter(l => l === '正式' || l === '预备'),
-      };
-    });
-    // 队长新加的队员：按 uid 精确保存（同名也不会互相覆盖）
-    const byUid = {};
-    $$('[data-muid]').forEach(el => {
-      const u = el.dataset.muid, f = el.dataset.mf;
-      byUid[u] = byUid[u] || {};
-      byUid[u][f] = el.value;
-    });
-    Object.entries(byUid).forEach(([u, f]) => {
-      const nm = (ovLocal().newMembers || []).find(m => (m.uid || m.name) === u);
-      if (!nm) return;
-      nm.college = f.college; nm.major = f.major; nm.grade = f.grade;
-      const lvl = (f.level || '').split(',').map(x => x.trim()).filter(Boolean);
-      nm.level = lvl.length ? lvl : (nm.level || ['正式']);
-    });
-    saveLocalOv(); toast('名册修改已保存'); render();
+    const n = saveRosterEdits();
+    toast('名册修改已保存（' + n + ' 人）—— 记得点「同步我的修改到线上」发布', 9000);
+    render();
   };
   $$('[data-muiddel]').forEach(b => b.onclick = () => {
     const u = b.dataset.muiddel, l = ovLocal();
@@ -2258,6 +2478,23 @@ function bindManage() {
     saveLocalOv();
     toast('已记下 ' + name + ' 的 ' + event + ' ' + fmtSec(sec) + ' —— 记得点「同步我的修改到线上」发布', 9000);
     render();
+  };
+  const bfl = $('#btnFillList');
+  if (bfl) bfl.onclick = () => { state.mFillMode = 'lack'; render(); };
+  const bfa = $('#btnFillAll');
+  if (bfa) bfa.onclick = () => { state.mFillMode = 'all'; render(); };
+  const bfs = $('#btnFillSave');
+  if (bfs) bfs.onclick = () => {
+    const n = saveRosterEdits();
+    state.mFillMode = 'lack';
+    toast('已保存 ' + n + ' 人的信息 —— 记得点「同步我的修改到线上」发布', 10000);
+    render();
+  };
+  const bfp = $('#btnFillPreview');
+  if (bfp) bfp.onclick = () => {
+    const ta = $('#fillBatch');
+    fillBatchRows = fillParseText(ta ? ta.value : '');
+    renderFillBatch();
   };
   const pbp = $('#btnPbPreview');
   if (pbp) pbp.onclick = () => {
