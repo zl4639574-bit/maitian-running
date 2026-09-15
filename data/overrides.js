@@ -24,49 +24,31 @@ window.TEAM_OVERRIDES = {
  ],
  "memberEdits": {
   "郭家俊": {
+   "sex": "男",
    "college": "动物科技学院",
    "major": "动科1905",
-   "grade": "2017",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2017"
   },
   "赵英博": {
    "college": "葡萄酒学院",
    "major": "葡酒2001",
-   "grade": "2018",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2018"
   },
   "严双": {
    "college": "水建学院",
    "major": "土木1902",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "党玉宝": {
+   "sex": "男",
    "college": "机电学院",
    "major": "机制1902",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "刘峰": {
    "college": "农学院",
    "major": "农学1902",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "周庭艳": {
    "college": "人文学院",
@@ -80,47 +62,27 @@ window.TEAM_OVERRIDES = {
   "唐梓涵": {
    "college": "生命科学学院",
    "major": "生工1901",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "曹宇": {
    "college": "林学院",
    "major": "林化1902",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "李婧": {
    "college": "食品学院",
    "major": "食安1903",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "杨童": {
    "college": "信息工程学院",
    "major": "软件1904",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "祁霖": {
    "college": "林学院",
    "major": "林化1902",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "马婷": {
    "college": "人文学院",
@@ -134,11 +96,7 @@ window.TEAM_OVERRIDES = {
   "马芬莲": {
    "college": "人文学院",
    "major": "社工1901",
-   "grade": "2019",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2019"
   },
   "任森林": {
    "college": "食品学院",
@@ -152,11 +110,7 @@ window.TEAM_OVERRIDES = {
   "刘思涌": {
    "college": "动物医学院",
    "major": "动药2001",
-   "grade": "2020",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2020"
   },
   "刘恒": {
    "college": "资环学院",
@@ -178,29 +132,17 @@ window.TEAM_OVERRIDES = {
   "张首伟": {
    "college": "园艺学院",
    "major": "20果树1班",
-   "grade": "2020",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2020"
   },
   "李永桂": {
    "college": "植保学院",
    "major": "制药2001",
-   "grade": "2020",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2020"
   },
   "杨再俊": {
    "college": "资环学院",
    "major": "资环2002",
-   "grade": "2020",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2020"
   },
   "杨宏宇": {
    "college": "园艺学院",
@@ -241,11 +183,7 @@ window.TEAM_OVERRIDES = {
   "郭志丹": {
    "college": "生命科学学院",
    "major": "生技2003",
-   "grade": "2020",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2020"
   },
   "马涛": {
    "college": "水建学院",
@@ -268,11 +206,7 @@ window.TEAM_OVERRIDES = {
   "周立琳": {
    "college": "园林学院",
    "major": "风园2101",
-   "grade": "2021",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2021"
   },
   "常健斌": {
    "college": "农学院",
@@ -313,11 +247,7 @@ window.TEAM_OVERRIDES = {
   "张涵玥": {
    "college": "人文学院",
    "major": "法学2103",
-   "grade": "2021",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2021"
   },
   "徐浩天": {
    "college": "水建学院",
@@ -349,11 +279,7 @@ window.TEAM_OVERRIDES = {
   "李树渊": {
    "college": "水建学院",
    "major": "电气2102",
-   "grade": "2021",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2021"
   },
   "李虎军": {
    "college": "机电学院",
@@ -430,11 +356,7 @@ window.TEAM_OVERRIDES = {
   "阎彦霏": {
    "college": "食品学院",
    "major": "21级",
-   "grade": "2021",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2021"
   },
   "陈松羚": {
    "college": "水建学院",
@@ -550,11 +472,7 @@ window.TEAM_OVERRIDES = {
   "王俊豪": {
    "college": "理学院",
    "major": "光电2201",
-   "grade": "2022",
-   "level": [
-    "正式"
-   ],
-   "sex": ""
+   "grade": "2022"
   },
   "李志宏": {
    "college": "林学院",
@@ -595,6 +513,22 @@ window.TEAM_OVERRIDES = {
    "college": "机电学院",
    "major": "电信1902",
    "grade": "2071",
+   "level": [
+    "正式"
+   ],
+   "sex": "男"
+  },
+  "罗美晴": {
+   "college": "",
+   "major": "",
+   "grade": "",
+   "level": [],
+   "sex": "女"
+  },
+  "王涛": {
+   "college": "生命科学学院",
+   "major": "生物工程",
+   "grade": "2824",
    "level": [
     "正式"
    ],
@@ -755,5 +689,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T01:24:55.464Z"
+ "updated": "2026-09-15T02:29:54.108Z"
 };
