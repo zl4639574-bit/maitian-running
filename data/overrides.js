@@ -467,8 +467,9 @@ window.TEAM_OVERRIDES = {
    "major": "机化2201",
    "grade": "2022",
    "level": [
-    "预备"
-   ]
+    "正式"
+   ],
+   "sex": "男"
   },
   "王俊豪": {
    "college": "理学院",
@@ -1067,5 +1068,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T12:57:42.444Z"
+ "updated": "2026-09-15T13:00:22.581Z"
 };
