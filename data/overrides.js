@@ -583,7 +583,7 @@ window.TEAM_OVERRIDES = {
  },
  "pbAdded": [
   {
-   "uid": "pbmu1ygwzqpkz8",
+   "uid": "pbmu1ynp487hfd",
    "name": "李想",
    "event": "5000米",
    "sec": 1000,
@@ -592,7 +592,9 @@ window.TEAM_OVERRIDES = {
    "note": "全国农林高校运动会"
   }
  ],
- "pbHidden": [],
+ "pbHidden": [
+  "pbmu1ygwzqpkz8"
+ ],
  "hiddenRecords": [
   "cmu14r7vj|李志宏|5009"
  ],
@@ -684,5 +686,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T00:50:49.242Z"
+ "updated": "2026-09-15T00:56:07.488Z"
 };
