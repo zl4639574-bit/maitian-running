@@ -581,7 +581,11 @@ window.TEAM_OVERRIDES = {
    }
   ]
  },
- "hiddenRecords": [],
+ "pbAdded": [],
+ "pbHidden": [],
+ "hiddenRecords": [
+  "cmu14r7vj|李志宏|5009"
+ ],
  "hall": [],
  "queue": null,
  "photos": [
@@ -670,5 +674,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T00:11:24.324Z"
+ "updated": "2026-09-15T00:48:03.970Z"
 };
