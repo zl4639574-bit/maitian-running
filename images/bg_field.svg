@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1600" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDFEFB"/><stop offset=".55" stop-color="#F5FAF1"/><stop offset="1" stop-color="#EAF4E5"/>
+    </linearGradient>
+    <radialGradient id="sun" cx=".5" cy=".78" r=".55">
+      <stop offset="0" stop-color="#E9C821" stop-opacity=".22"/><stop offset="1" stop-color="#E9C821" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="w1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#178522" stop-opacity=".22"/><stop offset="1" stop-color="#178522" stop-opacity=".05"/>
+    </linearGradient>
+    <linearGradient id="w2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14781F" stop-opacity=".22"/><stop offset="1" stop-color="#14781F" stop-opacity=".07"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="1600" fill="url(#sky)"/>
+  <!-- 呼应队徽的大圆环 -->
+  <circle cx="720" cy="560" r="430" fill="none" stroke="#178522" stroke-width="26" opacity=".10"/>
+  <circle cx="720" cy="560" r="360" fill="none" stroke="#14781F" stroke-width="10" opacity=".07"/>
+  <!-- 中央淡金晕（麦穗的暖光） -->
+  <rect width="1440" height="1600" fill="url(#sun)"/>
+  <!-- 底部麦浪：由远到近四层 -->
+  <path d="M0 1180 C 240 1120 420 1240 720 1190 C 1020 1140 1200 1250 1440 1196 L1440 1600 L0 1600 Z" fill="#178522" opacity=".10"/>
+  <path d="M0 1260 C 260 1206 470 1318 720 1272 C 980 1224 1210 1330 1440 1276 L1440 1600 L0 1600 Z" fill="url(#w1)"/>
+  <path d="M0 1360 C 300 1310 500 1412 760 1370 C 1020 1328 1230 1424 1440 1376 L1440 1600 L0 1600 Z" fill="url(#w2)"/>
+  <path d="M0 1470 C 320 1428 560 1518 820 1482 C 1080 1446 1250 1524 1440 1486 L1440 1600 L0 1600 Z" fill="#14781F" opacity=".13"/>
+  <!-- 麦秆感极淡斜纹 -->
+  <g stroke="#178522" stroke-width="2" opacity=".05">
+    <path d="M120 1600 L200 1250"/><path d="M300 1600 L360 1300"/><path d="M1140 1600 L1080 1290"/>
+    <path d="M1320 1600 L1250 1260"/><path d="M540 1600 L600 1360"/><path d="M900 1600 L840 1350"/>
+  </g>
+</svg>

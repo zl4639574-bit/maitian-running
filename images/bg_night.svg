@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1600" preserveAspectRatio="xMidYMax slice">
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0D2A15"/><stop offset=".6" stop-color="#0A2111"/><stop offset="1" stop-color="#07180C"/>
+    </linearGradient>
+    <radialGradient id="moon" cx=".5" cy=".7" r=".5">
+      <stop offset="0" stop-color="#E9C821" stop-opacity=".22"/><stop offset="1" stop-color="#E9C821" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1440" height="1600" fill="url(#night)"/>
+  <circle cx="720" cy="600" r="430" fill="none" stroke="#178522" stroke-width="26" opacity=".14"/>
+  <rect width="1440" height="1600" fill="url(#moon)"/>
+  <path d="M0 1260 C 260 1206 470 1318 720 1272 C 980 1224 1210 1330 1440 1276 L1440 1600 L0 1600 Z" fill="#178522" opacity=".22"/>
+  <path d="M0 1380 C 300 1330 500 1430 760 1390 C 1020 1348 1230 1440 1440 1396 L1440 1600 L0 1600 Z" fill="#5D9A62" opacity=".34"/>
+  <path d="M0 1490 C 320 1450 560 1530 820 1496 C 1080 1462 1250 1534 1440 1500 L1440 1600 L0 1600 Z" fill="#14781F" opacity=".5"/>
+</svg>
