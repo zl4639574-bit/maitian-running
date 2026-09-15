@@ -182,7 +182,7 @@ function ov() {
     // 本机"恢复显示"的人（shown）优先：从隐藏集合里剔除，这样同步后所有人也看得到
     hidden: Array.from(new Set((c.hidden || []).concat(l.hidden || [])))
       .filter(n => (l.shown || []).indexOf(n) < 0),
-    memberEdits: Object.assign({}, c.memberEdits || {}, l.memberEdits || {}),
+    memberEdits: mergeMemberEdits(c.memberEdits, l.memberEdits),
     newMembers: (function () {
       const m = {};
       (c.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });
@@ -212,6 +212,18 @@ function ov() {
     hall: l.hall || c.hall || null,
     queue: l.queue || c.queue || null,
   };
+}
+
+/** 名册修改合并：按人合并，本机的字段覆盖云端，但云端有、本机没写的字段（例如照片）保留下来
+    ⚠️ 不能整条替换：不然在另一个标签页/后来只改了「身份」的人，会把云端已有的头像等字段冲掉
+    （2026-09-15 真事：导入资料传了头像，随后改身份的那次保存把 photo 字段覆盖掉了） */
+function mergeMemberEdits(cloudME, localME) {
+  const out = {};
+  Object.keys(cloudME || {}).forEach(n => { out[n] = Object.assign({}, cloudME[n] || {}); });
+  Object.keys(localME || {}).forEach(n => {
+    out[n] = Object.assign({}, out[n] || {}, localME[n] || {});
+  });
+  return out;
 }
 
 /** 单独录入的个人最好成绩：按 uid 合并（本机覆盖云端），没有 uid 的老数据用 姓名|项目 兜底 */
@@ -267,24 +279,64 @@ function teamInfo() {
   });
 }
 
-/** 名册：只保留正式 / 预备 队员，去掉被删的，套用修改 */
+/** 名册：只保留正式 / 预备 队员，去掉被删的，套用修改
+    ⚠️ 身份必须"先套上改后的、再判断"，否则把原始身份「队员」的人改成「正式」永远不生效
+    （2026-09-15 修：队员资料导入 / 队员数据表里把身份填成「正式」，公开名册却一直不出现） */
 function rosterList() {
   const o = ov();
   const hidden = new Set(o.hidden);
+  const KEEP = ['正式', '预备'];
   const fromBase = (BASE.roster || [])
     .filter(m => !hidden.has(m.name))
-    .filter(m => (m.level || []).some(l => l === '正式' || l === '预备'))
     .map(m => {
       const e = o.memberEdits[m.name] || {};
-      return Object.assign({}, m, e, {
-        level: e.level || (m.level || []).filter(l => l === '正式' || l === '预备'),
-      });
-    });
+      // 明确改过身份（含改成空 = 不进公开名册）就听改后的；从没改过才用原始身份
+      const lv = (e.level === undefined || e.level === null) ? (m.level || []) : e.level;
+      return Object.assign({}, m, e, { level: (lv || []).filter(l => KEEP.indexOf(l) >= 0) });
+    })
+    .filter(m => m.level.length);
   // 队长在「队员名册」里手动添加的新队员
   const added = (o.newMembers || [])
     .filter(m => !hidden.has(m.name))
     .filter(m => (m.level || []).some(l => l === '正式' || l === '预备'));
   return fromBase.concat(added);
+}
+
+/** 这个人在不在公开名册里？在原始名册里的身份是什么？（给"导入后名册没反应"配准确提示）
+    返回 { inRoster 在公开名册里, inBase 原始名册里有记录, baseLevel 原始身份, isNew 队长新增的 } */
+function rosterStatus(name) {
+  const n = String(name || '').trim();
+  const base = (BASE.roster || []).filter(m => m.name === n)[0];
+  const nw = (ov().newMembers || []).filter(m => m.name === n)[0];
+  return { inRoster: rosterList().some(m => m.name === n),
+    inBase: !!base, baseLevel: base ? (base.level || []) : [], isNew: !!nw };
+}
+
+/** 「他为什么不在公开名册里」→ 一句能照做的话（不要只说"已存在"） */
+function rosterHint(name) {
+  const s = rosterStatus(name);
+  if (s.inRoster) return '';
+  if (s.inBase) {
+    return '他本来就在原始名册里，但身份是「' + ((s.baseLevel || []).join('/') || '未填') + '」，' +
+      '而公开名册只显示正式/预备 —— 去「数据管理 → 队员名册」搜他的名字，把「身份」改成「正式」再点「保存名册修改」，他就出现在队员名册里了';
+  }
+  if (s.isNew) return '他在「队长新增」里但身份不是正式/预备 —— 去「数据管理 → 队员名册」把他的身份改成「正式」';
+  return '名册里完全没有这个人 —— 用「数据管理 → 队员名册 → 批量添加队员」把他加进来（或点上面的「把他加入公开名册」）';
+}
+
+/** 把一个人加进「队长新增」名册（安静地加，不弹窗；同名的人各自一条） */
+function addNewMemberSilently(name, info) {
+  const n = String(name || '').trim();
+  if (!n) return null;
+  const l = ovLocal();
+  l.newMembers = l.newMembers || [];
+  const exist = l.newMembers.filter(m => m.name === n)[0];
+  if (exist) { Object.assign(exist, info || {}, { name: n }); saveLocalOv(); return exist; }
+  const rec = Object.assign({ uid: nmUid(), name: n, addedAt: new Date().toISOString().slice(0, 10) }, info || {});
+  if (!rec.level || !rec.level.length) rec.level = ['正式'];
+  l.newMembers.push(rec);
+  saveLocalOv();
+  return rec;
 }
 
 /** 所有成绩（每场比赛 + 线上发布的自由成绩 + 本机的） */
@@ -2293,7 +2345,8 @@ async function acceptInbox(i) {
   const cfg = ghCfg();
   if (it.type === 'maitian-member') {
     const r = await applyMemberDoc(it.data);
-    if (r) toast('已接收「' + r.name + '」的资料：信息 ' + r.info + ' 项、成绩 ' + r.pbs + ' 条' + r.photoNote, 11000);
+    if (r) toast('已接收「' + r.name + '」的资料：信息 ' + r.info + ' 项、成绩 ' + r.pbs + ' 条' + r.photoNote
+      + (r.hint ? ' ⚠️ ' + r.hint : ''), r.hint ? 18000 : 11000);
   } else {
     const rows = (it.data.rows || []).map(r => ({
       uid: newUid(), name: r.name, event: r.event || '5000米',
@@ -2379,6 +2432,7 @@ function parseMemberDoc(text) {
 
 async function applyMemberDoc(doc) {
   if (!doc || !doc.name) return toast('这份资料里没有姓名，导入不了');
+  const wasInRoster = rosterStatus(doc.name).inRoster;      // 导入前他到底在不在公开名册里
   const o = ovLocal();
   o.memberEdits = o.memberEdits || {};
   const e = o.memberEdits[doc.name] || {};
@@ -2426,7 +2480,8 @@ async function applyMemberDoc(doc) {
     saveLocalOv();
   }
   return { name: doc.name, info: ['sex', 'college', 'major', 'grade'].filter(k => e[k]).length,
-    pbs: add.length, photo: !!e.photo, photoNote: photoNote };
+    pbs: add.length, photo: !!e.photo, photoNote: photoNote,
+    inRoster: wasInRoster, hint: wasInRoster ? '' : rosterHint(doc.name) };
 }
 
 /** 收集表（一行一个人）→ 多份队员资料 */
@@ -2467,10 +2522,15 @@ function renderSheetPreview() {
   if (!q) { box.innerHTML = ''; return; }
   const mem = new Set(rosterList().map(m => m.name));
   const shown = q.docs.slice(0, 12);
+  const stOf = d => rosterStatus(d.name);
+  const inRosterN = q.docs.filter(d => stOf(d).inRoster).length;
+  const brandNewN = q.docs.filter(d => !stOf(d).inBase && !stOf(d).isNew).length;
+  const hiddenN = q.docs.filter(d => !stOf(d).inRoster && (stOf(d).inBase || stOf(d).isNew)).length;
   box.innerHTML = `
     <div class="notice" style="margin-top:12px">
       收集表里读到 <b>${q.docs.length}</b> 个人${q.skip.length ? '，跳过 ' + q.skip.length + ' 行' + (q.skip.length ? '（' + esc(q.skip.slice(0, 3).join('；')) + '）' : '') : ''}；
-      其中 <b>${q.docs.filter(d => !mem.has(d.name)).length}</b> 位名册里没有（会新增）。
+      其中 <b>${inRosterN}</b> 位已经在公开名册里（只更新资料）、
+      <b>${brandNewN}</b> 位名册里没有（导入后作为新队员加入，身份默认「正式」）${hiddenN ? '、<b>' + hiddenN + '</b> 位本来就在原始名册里但身份不是正式/预备 —— 光导入资料<b>不会</b>让他出现在名册里，要去「数据管理 → 队员名册」把身份改成「正式」' : ''}。
     </div>
     <div class="tbl-wrap" style="max-height:240px;overflow:auto;margin-top:10px">
       <table class="tbl" style="min-width:auto">
@@ -2481,7 +2541,10 @@ function renderSheetPreview() {
           return `<tr><td><b>${esc(d.name)}</b></td><td class="tiny hide-sm">${esc(d.sex || '')}</td>
             <td class="tiny hide-sm">${esc(d.college || '')}</td>
             <td class="tiny">${pbs.length ? pbs.map(ev => esc(ev) + ' ' + esc(d.pb[ev])).join('、') : '（全填无）'}</td>
-            <td>${mem.has(d.name) ? '<span class="tagbadge green">在</span>' : '<span class="tagbadge">新增</span>'}</td></tr>`;
+            <td>${mem.has(d.name) ? '<span class="tagbadge green">在</span>'
+              : (stOf(d).inBase || stOf(d).isNew)
+                ? '<span class="tagbadge">原始身份「' + esc(((stOf(d).baseLevel || []).join('/') || '未填')) + '」→ 要改身份才显示</span>'
+                : '<span class="tagbadge">新增</span>'}</td></tr>`;
         }).join('')}</tbody>
       </table>
     </div>
@@ -2494,15 +2557,27 @@ function renderSheetPreview() {
   if (no) no.onclick = () => { docSheetQueue = null; render(); };
   if (ok) ok.onclick = async () => {
     ok.disabled = true; ok.textContent = '导入中…';
-    let added = 0, updated = 0, pbs = 0;
+    let updated = 0, pbs = 0, joined = 0; const stillHidden = [];
     for (const d of q.docs) {
-      const before = (ovLocal().memberEdits || {})[d.name];
+      const st = rosterStatus(d.name);
       const r = await applyMemberDoc(d);
-      if (r) { pbs += r.pbs || 0; if (before) updated++; else added++; }
+      if (!r) continue;
+      pbs += r.pbs || 0;
+      if (st.inRoster) updated++;
+      else if (!st.inBase && !st.isNew) {          // 名册里完全没有 → 真把他加进名册（不然"新增"只是嘴上说说）
+        addNewMemberSilently(d.name, { sex: d.sex, college: d.college, major: d.major,
+          grade: d.grade, level: ['正式'], note: '收集表导入' });
+        joined++;
+      } else stillHidden.push(d.name);             // 原始身份不是正式/预备：只有改身份才会显示
     }
     docSheetQueue = null;
-    toast('收集表导入完成：名册更新 ' + updated + ' 人、新增 ' + added + ' 人、最好成绩 ' + pbs + ' 条。'
-      + '记得点「同步我的修改到线上」', 12000);
+    const tail = stillHidden.length
+      ? ' ⚠️ ' + stillHidden.slice(0, 5).join('、') + (stillHidden.length > 5 ? ' 等 ' + stillHidden.length + ' 位' : '')
+        + ' 本来就在原始名册里、身份不是正式/预备，所以队员名册里还看不到他（他们的资料/成绩已经存好了）。' +
+        '去「数据管理 → 队员名册」搜名字，把「身份」改成「正式」就出现了。'
+      : '';
+    toast('收集表导入完成：更新 ' + updated + ' 人、新加入名册 ' + joined + ' 人、最好成绩 ' + pbs + ' 条。'
+      + tail + '记得点「同步我的修改到线上」。', tail ? 18000 : 12000);
     render();
   };
 }
@@ -2540,26 +2615,54 @@ function renderMemberDocPreview() {
   const d = memberDocQueue;
   if (!d) { box.innerHTML = ''; return; }
   const memNames = new Set(rosterList().map(m => m.name));
+  const st = rosterStatus(d.doc.name);
+  const badge = st.inRoster ? '<span class="tagbadge green">在名册里</span>'
+    : (st.inBase || st.isNew)
+      ? '<span class="tagbadge">原始名册里有他（身份「' + esc((st.baseLevel || []).join('/') || '未填') + '」）→ 公开名册里还看不到</span>'
+      : '<span class="tagbadge">名册里没有 → 导入后新增一位</span>';
+  const hint = st.inRoster ? '' : ('<div class="tiny" style="margin-top:6px;color:var(--wheat)">⚠️ ' + esc(rosterHint(d.doc.name)) + '</div>');
   const pbRows = Object.keys(d.doc.pb || {}).filter(k => d.doc.pb[k] && d.doc.pb[k] !== '无');
   box.innerHTML = `
     <div class="notice" style="margin-top:12px">
-      <b>${esc(d.doc.name)}</b>　${memNames.has(d.doc.name) ? '<span class="tagbadge green">在名册里</span>' : '<span class="tagbadge">名册里没有 → 会新增一位</span>'}<br>
+      <b>${esc(d.doc.name)}</b>　${badge}<br>
       信息：${['sex', 'college', 'major', 'grade'].filter(k => d.doc[k]).map(k => esc(d.doc[k])).join(' / ') || '（没填）'}<br>
       最好成绩：${pbRows.length ? pbRows.map(k => esc(k) + ' ' + esc(d.doc.pb[k])).join('　') : '（全填了无）'}<br>
       照片：${d.doc.photo ? '有（' + Math.round(String(d.doc.photo).length / 1024) + ' KB）' : '没有'}
+      ${hint}
     </div>
     <div class="chips" style="margin-top:10px">
       <button class="btn" id="btnDocApply">导入这份资料</button>
+      ${st.inRoster ? '' : '<button class="btn ghost sm" id="btnDocAddRoster">把他加入公开名册（身份=正式）</button>'}
       <button class="btn flat sm" id="btnDocCancel">取消</button>
     </div>`;
-  const a = $('#btnDocApply'), c2 = $('#btnDocCancel');
+  const a = $('#btnDocApply'), c2 = $('#btnDocCancel'), a2 = $('#btnDocAddRoster');
   if (c2) c2.onclick = () => { memberDocQueue = null; render(); };
+  if (a2) a2.onclick = () => {
+    // 一键：原始名册里有的 → 把身份改成正式；名册里完全没有的 → 作为新队员加入
+    if (st.inBase || st.isNew) {
+      const l = ovLocal();
+      l.memberEdits = l.memberEdits || {};
+      const e = l.memberEdits[d.doc.name] || (l.memberEdits[d.doc.name] = {});
+      e.level = ['正式'];
+      if (st.isNew) {
+        const r0 = (l.newMembers || []).filter(m => m.name === d.doc.name)[0];
+        if (r0) r0.level = ['正式'];
+      }
+      saveLocalOv();
+    } else {
+      addNewMemberSilently(d.doc.name, { sex: d.doc.sex, college: d.doc.college, major: d.doc.major,
+        grade: d.doc.grade, level: ['正式'], note: '队员资料导入' });
+    }
+    toast('已把「' + d.doc.name + '」加进公开名册（身份：正式）—— 记得点「同步我的修改到线上」', 11000);
+    render();
+  };
   if (a) a.onclick = async () => {
     a.disabled = true; a.textContent = '导入中…';
     const r = await applyMemberDoc(d.doc);
     memberDocQueue = null;
     render();
-    if (r) toast('已导入「' + r.name + '」：信息 ' + r.info + ' 项、最好成绩 ' + r.pbs + ' 条' + r.photoNote, 10000);
+    if (r) toast('已导入「' + r.name + '」：信息 ' + r.info + ' 项、最好成绩 ' + r.pbs + ' 条' + r.photoNote
+      + (r.hint ? ' ⚠️ ' + r.hint : ''), r.hint ? 18000 : 10000);
   };
 }
 
@@ -4207,7 +4310,7 @@ async function pushToGitHub() {
       honors: l.honors || cloud.honors || null,
       activities: l.activities || cloud.activities || null,
       hidden: Array.from(new Set((cloud.hidden || []).concat(l.hidden || []))),
-      memberEdits: Object.assign({}, cloud.memberEdits || {}, l.memberEdits || {}),
+      memberEdits: mergeMemberEdits(cloud.memberEdits, l.memberEdits),
       newMembers: (function () {
         const m = {};
         (cloud.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });
