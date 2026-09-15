@@ -536,7 +536,13 @@ window.TEAM_OVERRIDES = {
    "sex": "男"
   },
   "王金豪": {
-   "photo": "images/avatars/mhmttw.jpg"
+   "college": "林学院",
+   "major": "",
+   "grade": "2024",
+   "level": [
+    "正式"
+   ],
+   "sex": "男"
   }
  },
  "newMembers": [],
@@ -896,5 +902,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T09:00:30.137Z"
+ "updated": "2026-09-15T09:02:59.128Z"
 };
