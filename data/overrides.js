@@ -931,58 +931,6 @@ window.TEAM_OVERRIDES = {
    "college": "林学院"
   },
   {
-   "uid": "rmu2rzxo1_4_k36u",
-   "name": "罗胜文",
-   "event": "1500米",
-   "sec": 430,
-   "fmt": "7:10",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789483038769,
-   "sex": "男",
-   "college": "园艺学院"
-  },
-  {
-   "uid": "rmu2rzxo1_5_n29t",
-   "name": "罗胜文",
-   "event": "5000米",
-   "sec": 1737,
-   "fmt": "28:57",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789483038769,
-   "sex": "男",
-   "college": "园艺学院"
-  },
-  {
-   "uid": "rmu2rzxo1_6_p1vs",
-   "name": "罗胜文",
-   "event": "10000米",
-   "sec": 3837,
-   "fmt": "1:03:57",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789483038769,
-   "sex": "男",
-   "college": "园艺学院"
-  },
-  {
-   "uid": "rmu2rzxo1_7_s7ic",
-   "name": "罗胜文",
-   "event": "半马",
-   "sec": 13220,
-   "fmt": "3:40:20",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789483038769,
-   "sex": "男",
-   "college": "园艺学院"
-  },
-  {
    "uid": "rmu2s1vzw_8_e88y",
    "name": "姚语熙",
    "event": "800米",
@@ -1066,7 +1014,11 @@ window.TEAM_OVERRIDES = {
   "rmu2ktj59_6_1j21",
   "rmu2ktj59_7_v9sd",
   "rmu2o5csb_6_ogmb",
-  "rmu2o5csb_7_cv9s"
+  "rmu2o5csb_7_cv9s",
+  "rmu2rzxo1_4_k36u",
+  "rmu2rzxo1_6_p1vs",
+  "rmu2rzxo1_7_s7ic",
+  "rmu2rzxo1_5_n29t"
  ],
  "hiddenRecords": [
   "cmu14r7vj|李志宏|5009"
@@ -1241,5 +1193,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T14:49:02.378Z"
+ "updated": "2026-09-15T14:57:40.211Z"
 };
