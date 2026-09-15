@@ -3775,8 +3775,12 @@ function bindManage() {
     pd.onclick = () => pi.click();
     ['dragenter', 'dragover'].forEach(ev => pd.addEventListener(ev, e => { e.preventDefault(); pd.classList.add('over'); }));
     ['dragleave', 'drop'].forEach(ev => pd.addEventListener(ev, e => { e.preventDefault(); pd.classList.remove('over'); }));
-    pd.addEventListener('drop', e => handlePhotos(e.dataTransfer.files));
-    pi.onchange = () => handlePhotos(pi.files);
+    pd.addEventListener('drop', e => handlePhotos(Array.from(e.dataTransfer.files)));
+    pi.onchange = () => {          // 取完就清空 value：同一张照片再选一次也能触发（手机上想重试时最常撞到）
+      const fs = Array.from(pi.files || []);
+      pi.value = '';
+      handlePhotos(fs);
+    };
   }
   $$('[data-pdel]').forEach(b => b.onclick = () => {
     const l = ovLocal();
@@ -3800,7 +3804,8 @@ function bindManage() {
   });
 }
 
-/** 照片：压缩后存到本机待同步列表 */
+/** 照片：压缩后存到本机待同步列表；有令牌就【一张一张】直接传线上
+    （手机上同时并发传多张会被 GitHub 限流 → 之前"4 张打不开被跳过"就是这个原因） */
 function handlePhotos(files) {
   if (!files || !files.length) return;
   const sel = $('#albSel'), nw = $('#albNew');
@@ -3812,63 +3817,92 @@ function handlePhotos(files) {
   const direct = !!cfg.token;                 // 有令牌：压完直接传线上，不占本机那 5MB
   const l = ovLocal();
   l.photos = l.photos || [];
-  let ok = 0, skipped = 0, full = 0;
-  const bad = [];
-  let seen = 0;
-  const finish = () => {
-    seen++;
-    if (seen < list.length) return;
+  const bad = [];        // 打不开 / 压不了
+  const fail = [];       // 传不上去（已退回本机待同步）
+  let ok = 0, skipped = 0, full = 0, kept = 0, read = 0;
+
+  const summary = () => {
     render();
     const parts = [];
     if (ok) parts.push('已加入 ' + ok + ' 张到「' + album + '」' + (direct ? '（已直接传到线上，再点「同步」照片墙就显示）' : '（待同步）'));
     if (bad.length) parts.push(bad.length + ' 张打不开被跳过：' + bad.slice(0, 2).join('、') + (bad.length > 2 ? ' 等' : '')
-      + ' —— 这些多是不认识的格式，或网络太慢没加载好解码器：稍后重试一次；还不行就把 iPhone「设置 → 相机 → 格式」改成「兼容性最佳」，或从相册里重新选图');
+      + ' —— 多是不认识的格式，或解码器没加载好：稍后重试一次；还不行就把 iPhone「设置 → 相机 → 格式」改成「兼容性最佳」');
+    if (fail.length) parts.push(fail.length + ' 张没传上去（已存在本机，等网络好点点「同步」就能补传）：' + fail.slice(0, 2).join('、') + (fail.length > 2 ? ' 等' : ''));
     if (full) parts.push(full + ' 张没存住：本机存储满了，先点「同步」把已有照片传到线上腾出空间');
     if (skipped) parts.push(skipped + ' 个文件不是图片，已跳过');
-    toast(parts.join('；') || '没有可用的图片', 12000);
+    toast(parts.join('；') || '没有可用的图片', 15000);
   };
-  list.forEach((f, i) => {
-    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(f.name)) { skipped++; finish(); return; }
+  const recOf = (it) => ({ album: it.album, albumDate: it.albumDate, file: it.file, caption: it.caption, size: it.size });
+
+  // ---- 第一步：纯本机解码 + 压缩（可以并行，吃本机 CPU） ----
+  const chosen = [];
+  list.forEach(f => {
+    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(f.name)) { skipped++; return; }
+    chosen.push(f);
+  });
+  const items = [];
+  const total = chosen.length;
+  if (!total) { summary(); return; }
+  const maybeGo = () => { if (read >= total) step2(items); };
+  chosen.forEach((f, i) => {
     const img = new Image();
     const fr = new FileReader();
-    fr.onerror = () => { bad.push(f.name); finish(); };
+    fr.onerror = () => { bad.push(f.name); read++; maybeGo(); };
     fr.onload = () => {
-      img.onerror = () => { bad.push(f.name); finish(); };       // HEIC 等解不开的格式走这里
-      img.onload = async () => {
+      img.onerror = () => { bad.push(f.name + '（浏览器认不出这个格式）'); read++; maybeGo(); };
+      img.onload = () => {
         try {
-          const MAX = 1500;
+          const MAX = 1200;                        // 手机上小一点：省流量、传得动
           let w = img.width, h = img.height;
           if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
           const cv = document.createElement('canvas');
           cv.width = w; cv.height = h;
           cv.getContext('2d').drawImage(img, 0, 0, w, h);
-          const data = cv.toDataURL('image/jpeg', 0.8);
-          const rec = {
+          const data = cv.toDataURL('image/jpeg', 0.78);
+          items.push({
             album, albumDate: (album.match(/\d{4}/) || [todayStr().slice(0, 4)])[0],
             file: 'up_' + Date.now() + '_' + i + '.jpg',
             caption: f.name.replace(/\.[^.]+$/, '').slice(0, 18),
             size: Math.round(data.length * 0.75),
-          };
-          if (direct) {
-            await ghPut(cfg, 'images/' + rec.file, String(data).split(',')[1],
-                        '上传照片 ' + album + ' / ' + rec.file);
-            PHOTO_PREVIEW[rec.file] = data;        // 本机先能预览
-            l.photos.push(rec);                    // 只存元数据（很小）
-            saveLocalOv();
-          } else {
-            l.photos.push(Object.assign({ data }, rec));
-            if (!saveLocalOv()) { l.photos.pop(); full++; finish(); return; }   // 没存住就回退，别骗人
-          }
-          ok++;
+            data, fname: f.name,
+          });
         } catch (e) {
-          bad.push(f.name + '（' + String((e && e.message) || e).slice(0, 24) + '）');
+          bad.push(f.name + '（压缩失败：' + String((e && e.message) || e).slice(0, 30) + '）');
         }
-        finish();
+        read++; maybeGo();
       };
       img.src = fr.result;
     };
-    feedPhoto(f, fr, () => { bad.push(f.name); finish(); });
+    feedPhoto(f, fr, () => { bad.push(f.name + '（HEIC 转不出来）'); read++; maybeGo(); });
   });
+
+  // ---- 第二步：一张一张传（串行 + 自动重试）；没令牌就只存本机 ----
+  async function step2(its) {
+    if (!direct) {
+      its.forEach(it => {
+        l.photos.push(Object.assign({ data: it.data }, recOf(it)));
+        if (!saveLocalOv()) { l.photos.pop(); full++; } else kept++;
+      });
+      ok = kept; summary(); return;
+    }
+    const n = its.length;
+    const prog = (k) => toast('正在传第 ' + k + ' / ' + n + ' 张照片…（别切到别的 App，传完会提示）', 15000);
+    if (n) prog(1);
+    for (let k = 0; k < n; k++) {
+      if (k > 0) prog(k + 1);
+      const it = its[k];
+      PHOTO_PREVIEW[it.file] = it.data;            // 本机先能预览
+      const r = await uploadOne(cfg, 'images/' + it.file, String(it.data).split(',')[1],
+                                '上传照片 ' + album + ' / ' + it.file, 3);
+      if (r.ok) { ok++; l.photos.push(recOf(it)); saveLocalOv(); continue; }
+      // 传不上去也别丢：退回本机待同步列表（带着图片数据），以后点「同步」还能补传
+      l.photos.push(Object.assign({ data: it.data }, recOf(it)));
+      if (!saveLocalOv()) { l.photos.pop(); full++; } else kept++;
+      fail.push(it.fname + '（' + r.error.slice(0, 60) + '）');
+    }
+    if (kept) toast('有 ' + kept + ' 张没传上去，但已经存在本机待同步列表里了 —— 网络好了点「同步」就能补传', 15000);
+    summary();
+  }
 }
 
 /* -------------------------------------------------- GitHub 同步（队长版） */
@@ -3950,6 +3984,23 @@ async function ghGetSha(cfg, path) {
   if (r.status === 404) return null;
   if (!r.ok) throw new Error('读取 ' + path + ' 失败 ' + r.status + ghHint(r.status));
   return (await r.json()).sha;
+}
+
+/** 一张照片：失败自动重试（手机上网络抖动/限流很常见）；401/404 这种重试没用的直接放弃 */
+async function uploadOne(cfg, path, b64, message, tries) {
+  const max = tries || 3;
+  let last = null;
+  for (let n = 1; n <= max; n++) {
+    try { await ghPut(cfg, path, b64, message); return { ok: true }; }
+    catch (e) {
+      last = e;
+      const msg = String((e && e.message) || e);
+      const fatal = / 401/.test(msg) || / 404/.test(msg);   // 令牌无效/仓库分支不对：重试也是白试
+      if (n >= max || fatal) break;
+      await new Promise(r => setTimeout(r, n === 1 ? 1200 : 3500));
+    }
+  }
+  return { ok: false, error: String((last && last.message) || last) };
 }
 
 async function ghPut(cfg, path, b64, message) {
