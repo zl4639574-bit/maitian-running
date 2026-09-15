@@ -380,8 +380,63 @@ function rosterStatus(name) {
   const n = String(name || '').trim();
   const base = (BASE.roster || []).filter(m => m.name === n)[0];
   const nw = (ov().newMembers || []).filter(m => m.name === n)[0];
+  const o = ov();
   return { inRoster: rosterList().some(m => m.name === n),
-    inBase: !!base, baseLevel: base ? (base.level || []) : [], isNew: !!nw };
+    inBase: !!base, baseLevel: base ? (base.level || []) : [], isNew: !!nw,
+    removed: (o.hidden || []).indexOf(n) >= 0 && (o.shown || []).indexOf(n) < 0 };   // 在「已移除」名单里
+}
+
+/** 这个人此刻的有效身份（改过的优先，没改过看原始 / 队长新增） */
+function effLevel(name) {
+  const n = String(name || '').trim();
+  const e = (ov().memberEdits || {})[n] || {};
+  if (e.level !== undefined && e.level !== null) return e.level || [];
+  const nw = (ov().newMembers || []).filter(m => m.name === n)[0];
+  if (nw && nw.level) return nw.level;
+  const base = (BASE.roster || []).filter(m => m.name === n)[0];
+  return (base && base.level) || [];
+}
+/** 这个身份会不会显示在公开名册里（正式/预备 = 会） */
+function isVisibleLevel(lv) {
+  const a = lv || [];
+  return a.indexOf('正式') >= 0 || a.indexOf('预备') >= 0;
+}
+
+/** 把一个人从「已移除」里放回来（只在"身份从不可见变成可见"时自动调）
+    ⚠️ 只写本机 shown；同步时会把 hidden 里对应名字扣掉（见 pushToGitHub 的合并），线上才会真的显示 */
+function unhideMember(name) {
+  const n = String(name || '').trim();
+  if (!n) return false;
+  const l = ovLocal();
+  if ((l.shown || []).indexOf(n) >= 0) return false;
+  const isHidden = (ov().hidden || []).indexOf(n) >= 0 && (ov().shown || []).indexOf(n) < 0;
+  if (!isHidden) return false;
+  l.shown = Array.from(new Set((l.shown || []).concat([n])));
+  saveLocalOv();
+  return true;
+}
+
+/** 自愈：身份已经"从不可见改成可见"（原始身份「队员」→ 正式/预备）的人，
+    如果还躺在「已移除」（overrides.hidden）名单里，自动放回名册（写本机 shown）。
+    ⚠️ 必须写 shown 而不是只改显示：同步时 hidden 要扣掉 shown 里的名字，线上才真的显示。
+    只认"升级"这一种情况 —— 本来身份就是预备/正式、当年被刻意移出显示的那批人不动。 */
+function healRosterHidden() {
+  const o = ov(), l = ovLocal();
+  const hid = o.hidden || [];
+  if (!hid.length) return 0;
+  const base = {};
+  (BASE.roster || []).forEach(m => { base[m.name] = m.level || []; });
+  const add = [];
+  hid.forEach(n2 => {
+    if ((o.shown || []).indexOf(n2) >= 0) return;
+    const e = (o.memberEdits || {})[n2] || {};
+    if (e.level === undefined || e.level === null) return;              // 没改过身份 → 不动
+    if (isVisibleLevel(e.level) && !isVisibleLevel(base[n2])) add.push(n2);   // 升级了 → 放回来
+  });
+  if (!add.length) return 0;
+  l.shown = Array.from(new Set((l.shown || []).concat(add)));
+  saveLocalOv();
+  return add.length;
 }
 
 /** 「他为什么不在公开名册里」→ 一句能照做的话（不要只说"已存在"） */
@@ -393,6 +448,7 @@ function rosterHint(name) {
       '而公开名册只显示正式/预备 —— 去「数据管理 → 队员名册」搜他的名字，把「身份」改成「正式」再点「保存名册修改」，他就出现在队员名册里了';
   }
   if (s.isNew) return '他在「队长新增」里但身份不是正式/预备 —— 去「数据管理 → 队员名册」把他的身份改成「正式」';
+  if (s.removed) return '他的身份是正式/预备，但他在「已移除」名单里（以前被移除了）—— 去「数据管理 → 队员名册」往下找「已移除」那一栏，点他的「↺ 恢复显示」，再同步一次';
   return '名册里完全没有这个人 —— 用「数据管理 → 队员名册 → 批量添加队员」把他加进来（或点上面的「把他加入公开名册」）';
 }
 
@@ -2605,6 +2661,9 @@ async function applyMemberDoc(doc) {
   if (lvIn && lvIn.length) {
     e.level = lvIn;
     levelNote = '，身份已设为「' + lvIn.join('/') + '」';
+    if (isVisibleLevel(lvIn) && !wasInRoster) {        // 本来不在公开名册里 → 这次明确设成正式/预备了
+      if (unhideMember(doc.name)) levelNote += '、已把他从「已移除」里放回名册';
+    }
   }
   // 照片：有令牌就直接传成仓库里的头像；没有就先存 dataURL（下次同步一起带上）
   let photoNote = '';
@@ -2865,6 +2924,8 @@ function saveRosterEdits() {
     byName[n] = byName[n] || {};
     byName[n][f] = el.value;
   });
+  const beforeVis = {};                                  // 改之前谁在公开名册里（判断"是不是新变可见"）
+  Object.keys(byName).forEach(n2 => { beforeVis[n2] = isVisibleLevel(effLevel(n2)); });
   Object.entries(byName).forEach(([n, f]) => {
     const lvl = (f.level || '').split(',').map(x => x.trim()).filter(Boolean);
     const base = (BASE.roster || []).find(m => m.name === n) || {};
@@ -2917,8 +2978,16 @@ function saveRosterEdits() {
       if (f[k] !== undefined && String(f[k]).trim() !== '') nm[k] = String(f[k]).trim();
     });
   });
+  // 身份"从不可见变成可见"（例如原始身份「队员」的人被改成「正式」）→ 顺手从「已移除」放回来，
+  // 不然改了身份他还是不显示（这就是"名册同步一直有问题"的一半原因）
+  let back = 0;
+  Object.entries(byName).forEach(([n2]) => {
+    const now = isVisibleLevel((edits[n2] || {}).level);
+    if (now && !beforeVis[n2] && unhideMember(n2)) back++;
+  });
   saveLocalOv();
-  return Object.keys(byName).length + Object.keys(byUid).length;
+  if (back) toast('已保存，并把这 ' + back + ' 位从「已移除」里放回了名册 —— 记得点「同步我的修改到线上」', 12000);
+  return Object.keys(byName).length + Object.keys(byUid).length + back;
 }
 
 /* ---------------- 完善队员信息（补齐 性别 / 学院 / 专业 / 年级）---------------- */
@@ -3749,13 +3818,19 @@ function bindManage() {
   $$('[data-mdel]').forEach(b => b.onclick = () => {
     const n = b.dataset.mdel;
     const l = ovLocal();
-    l.hidden = (l.hidden || []).concat([n]);
-    saveLocalOv(); toast('已从公开名册移除 ' + n); render();
+    l.hidden = (l.hidden || []).concat([n]).filter((x, i, a) => a.indexOf(x) === i);
+    l.shown = (l.shown || []).filter(x => x !== n);      // 和「恢复显示」互斥，不然移除了又被 shown 顶回来
+    saveLocalOv(); toast('已从公开名册移除 ' + n + ' —— 记得同步，线上才会消失', 10000); render();
   });
   $$('[data-mrestore]').forEach(b => b.onclick = () => {
     const n = b.dataset.mrestore, l = ovLocal();
     l.hidden = (l.hidden || []).filter(x => x !== n);
-    saveLocalOv(); render();
+    // ⚠️ 大多数人是**云端** hidden 的，只删本机 hidden 等于没删 —— 必须同时进 shown，
+    //    同步时才会把名字从 hidden 里扣掉（2026-09-15 修：以前点「恢复显示」永远没反应）
+    l.shown = Array.from(new Set((l.shown || []).concat([n])));
+    saveLocalOv();
+    toast('已把 ' + n + ' 放回名册 —— 记得点「同步我的修改到线上」，线上才会显示', 12000);
+    render();
   });
   const rsy = $('#btnRosterSync');
   if (rsy) rsy.onclick = () => pushToGitHub();
@@ -4510,6 +4585,7 @@ async function pushToGitHub() {
   cfg.branch = await ghRealBranch(cfg);   // 用仓库真实的分支（main / master 自动认）
   lsSet(LS_CFG, cfg);                     // 顺便把正确的分支存回去
   await loadCloud(true);            // 先拉一次最新的云端数据，避免把别人刚提交的覆盖掉
+  healRosterHidden();               // 同步前再自愈一次，保证这次就把 hidden 里的漏网的扣掉
   const btn = $('#btnPush');
   if (btn) { btn.disabled = true; btn.textContent = '正在同步…'; }
   try {
@@ -4519,7 +4595,9 @@ async function pushToGitHub() {
       team: Object.assign({}, cloud.team || {}, l.team || {}),
       honors: l.honors || cloud.honors || null,
       activities: l.activities || cloud.activities || null,
-      hidden: Array.from(new Set((cloud.hidden || []).concat(l.hidden || []))),
+      // ⚠️ 必须扣掉本机「↺ 恢复显示」的人，否则恢复只在本地有效、线上永远看不见（2026-09-15 修）
+      hidden: Array.from(new Set((cloud.hidden || []).concat(l.hidden || [])))
+        .filter(n => (l.shown || []).indexOf(n) < 0),
       memberEdits: mergeMemberEdits(cloud.memberEdits, l.memberEdits),
       newMembers: (function () {
         const m = {};
@@ -4840,6 +4918,8 @@ function startAutoRefresh() {
   // 这个模式里没有「总览」这类默认页（比如成绩上报页只有一个 tab）→ 落到第一个可用 tab
   if (!(TABS[MODE] || []).some(t => t[0] === state.tab)) state.tab = (TABS[MODE] || [['home']])[0][0];
   await loadCloud(false);
+  const healed = healRosterHidden();          // 把"身份已升级但被「已移除」压着"的人放回名册
+  if (healed) setTimeout(() => toast('有 ' + healed + ' 位身份已改成正式/预备的人之前被「已移除」压着，已自动放回名册 —— 点一次「同步我的修改到线上」他们就会出现在公开名册里', 16000), 1500);
   await loadQueueCfg();
   if (MODE === 'captain' && loadCfgFromHash()) toast('已用链接里的账号自动填好，可以直接同步', 4000);
   render();
