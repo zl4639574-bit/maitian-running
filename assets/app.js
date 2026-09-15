@@ -213,6 +213,14 @@ function mergeCompRecords(a, b) {
   return out;
 }
 
+/** 把 "2024.4.28" / "2022.10.14—10.15" / "2025.9.14" 这类日期转成可比较的数字 YYYYMMDD
+    （纯字符串比较会把 12 月排到 4 月前面） */
+function dateKey(s) {
+  const m = String(s || '').match(/(\d{4})\s*[.\-/年]\s*(\d{1,2})(?:\s*[.\-/月]\s*(\d{1,2}))?/);
+  if (!m) return 0;
+  return parseInt(m[1], 10) * 10000 + parseInt(m[2], 10) * 100 + parseInt(m[3] || '1', 10);
+}
+
 /** 每场比赛 / 每次测速的成绩册：原始资料里的 + 队长补充的成绩 - 被删掉的 */
 function competitions() {
   const o = ov();
@@ -229,7 +237,7 @@ function competitions() {
   }));
   o.competitions.forEach(c => out.push(Object.assign({ builtin: false, short: c.name }, c,
     { records: build(c.id, c.records) })));
-  out.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  out.sort((a, b) => dateKey(b.date) - dateKey(a.date));   // 按真实日期从近到远
   return out;
 }
 
@@ -360,13 +368,20 @@ function renderHome() {
   const recs = allResults().length;
   const pb = personalBests();
   const alb = albums();
-  const latest = (BASE.datasets || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
-  const latestEv = latest && latest.events && latest.events[0] ? latest.events[0].event : '';
-  const top = latestEv ? personalBests()
-    .filter(r => r.event === latestEv && (BASE.datasets || []).some(d => d.id === latest.id))
-    .slice(0, 0) : [];
-  // 最近一次测速的现场名次（用原始那次的记录，不是 PB）
-  const live = latest ? (latest.records || []).filter(r => r.event === latestEv && r.rank <= 5) : [];
+  // 最近一次测速：取"所有场次"里日期最新的一场（含队长在线上新加的比赛/测速，不只是本机资料）
+  const comps = competitions().filter(c => (c.records || []).length);
+  const latest = comps[0] || null;
+  const latestLabel = latest ? (latest.short || latest.name || '') : '';
+  const latestDate = latest ? (latest.date || '') : '';
+  const latestEv = latest ? (latest.event || (latest.events && latest.events[0] ? latest.events[0].event : '') || '') : '';
+  const latestRecs = latest ? (latest.records || []).filter(r => !latestEv || !r.event || r.event === latestEv) : [];
+  const ranked = latestRecs.filter(r => r.rank);
+  // 有现场名次就按名次；没有（比如队长刚导入的成绩）就按成绩快慢排前 5
+  const live = (ranked.length
+    ? ranked.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99))
+    : latestRecs.slice().sort((a, b) => (a.sec || 1e9) - (b.sec || 1e9))
+      .map((r, i) => Object.assign({}, r, { rank: i + 1 }))
+  ).slice(0, 5);
 
   return `
   <div class="hero">
@@ -374,6 +389,8 @@ function renderHome() {
     <h1>${esc(teamInfo().name || '麦田守望长跑队')}</h1>
     <p class="sub">${esc(teamInfo().alias || '')} · 成立于 ${esc(teamInfo().founded || '')}</p>
     <div class="slogan">${esc(teamInfo().slogan || '')}</div>
+    ${CLOUD_OV && CLOUD_OV.updated ? `<div class="tiny" style="margin-top:12px;opacity:.75">
+      数据更新于 ${esc(fmtUpd(CLOUD_OV.updated))}${MODE === 'view' ? ' · 每 30 秒自动检查一次' : ''}</div>` : ''}
   </div>
 
   <div class="stats-row">
@@ -403,10 +420,10 @@ function renderHome() {
   ${latest ? `
   <div class="card sec">
     <div class="sec-head">
-      <h2>最近一次测速 · ${esc(latest.label)}</h2>
+      <h2>最近一次测速 · ${esc(latestLabel)}</h2>
       <button class="btn ghost sm" data-go="board">看最好成绩榜 →</button>
     </div>
-    <div class="tiny" style="margin-bottom:14px">${esc(latest.date)} · ${esc(latestEv)} · 共 ${latest.count} 条记录</div>
+    <div class="tiny" style="margin-bottom:14px">${esc(latestDate)} · ${esc(latestEv)} · 共 ${latestRecs.length} 条记录</div>
     <div class="best-list">
       ${live.map(r => `
         <div class="best-row">
@@ -2841,6 +2858,40 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') stepLightbox(-1);
 }, false);
 
+/** ISO 时间 → "09-15 08:12"（本地时间，页头显示用） */
+function fmtUpd(s) {
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return String(s || '').slice(0, 16).replace('T', ' ');
+  const p = n => (n < 10 ? '0' : '') + n;
+  return p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+/** 展示版：每 30 秒悄悄看一眼线上数据有没有更新（只读、不上传；切到后台不查）
+    队长一同步，别人已经开着的页面会在半分钟内自己变成最新 */
+let AUTO_TICK = null;
+function startAutoRefresh() {
+  if (AUTO_TICK || MODE !== 'view') return;
+  AUTO_TICK = setInterval(async () => {
+    if (document.hidden) return;
+    const lb = $('#lightbox');
+    if (lb && lb.classList.contains('on')) return;          // 正在看大图，别打断
+    try {
+      const r = await fetch(ROOT + 'data/overrides.js?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const m = (await r.text()).match(/window\.TEAM_OVERRIDES\s*=\s*([\s\S]*?);\s*$/);
+      if (!m) return;
+      const o = JSON.parse(m[1]);
+      if ((o.updated || '') !== ((CLOUD_OV && CLOUD_OV.updated) || '')) {
+        const y = window.scrollY;
+        CLOUD_OV = o; SYNC_STATE = 'cloud';
+        render();
+        window.scrollTo(0, y);
+        toast('数据已更新 · ' + fmtUpd(o.updated), 4000);
+      }
+    } catch (e) { /* 网络抖动就算了，下一轮再试 */ }
+  }, 30000);
+}
+
 (async function init() {
   if (typeof XLSX === 'undefined' && MODE === 'captain') console.warn('SheetJS 未加载，Excel 导入不可用');
   const h = (location.hash || '').replace('#', '');
@@ -2849,4 +2900,5 @@ document.addEventListener('keydown', e => {
   await loadQueueCfg();
   if (MODE === 'captain' && loadCfgFromHash()) toast('已用链接里的账号自动填好，可以直接同步', 4000);
   render();
+  startAutoRefresh();
 })();
