@@ -3822,7 +3822,7 @@ function handlePhotos(files) {
     const parts = [];
     if (ok) parts.push('已加入 ' + ok + ' 张到「' + album + '」' + (direct ? '（已直接传到线上，再点「同步」照片墙就显示）' : '（待同步）'));
     if (bad.length) parts.push(bad.length + ' 张打不开被跳过：' + bad.slice(0, 2).join('、') + (bad.length > 2 ? ' 等' : '')
-      + ' —— 这些是 iPhone 的 HEIC 照片，页面会自动转换；如果是网络太慢没加载好解码器，稍后重试一次就行');
+      + ' —— 这些多是不认识的格式，或网络太慢没加载好解码器：稍后重试一次；还不行就把 iPhone「设置 → 相机 → 格式」改成「兼容性最佳」，或从相册里重新选图');
     if (full) parts.push(full + ' 张没存住：本机存储满了，先点「同步」把已有照片传到线上腾出空间');
     if (skipped) parts.push(skipped + ' 个文件不是图片，已跳过');
     toast(parts.join('；') || '没有可用的图片', 12000);
