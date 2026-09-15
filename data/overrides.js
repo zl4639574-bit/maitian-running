@@ -538,7 +538,7 @@ window.TEAM_OVERRIDES = {
   },
   "王金豪": {
    "college": "林学院",
-   "major": "",
+   "major": "木材 2403",
    "grade": "2024",
    "level": [
     "正式"
@@ -730,6 +730,97 @@ window.TEAM_OVERRIDES = {
    "ts": 1789443615858,
    "sex": "男",
    "college": "林学院"
+  },
+  {
+   "uid": "rmu2ktj59_1_i50j",
+   "name": "王金豪",
+   "event": "800米",
+   "sec": 135,
+   "fmt": "2:15",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789470982701,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2ktj59_2_eg6a",
+   "name": "王金豪",
+   "event": "1500米",
+   "sec": 300,
+   "fmt": "5:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789470982701,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2ktj59_3_oip6",
+   "name": "王金豪",
+   "event": "3000米",
+   "sec": 610,
+   "fmt": "10:10",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789470982701,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2ktj59_4_6o32",
+   "name": "王金豪",
+   "event": "5000米",
+   "sec": 1050,
+   "fmt": "17:30",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789470982701,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2ktj59_5_7ldf",
+   "name": "王金豪",
+   "event": "10000米",
+   "sec": 2250,
+   "fmt": "37:30",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789470982701,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2ktj59_6_1j21",
+   "name": "王金豪",
+   "event": "半马",
+   "sec": 84,
+   "fmt": "1:24",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789470982701,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2ktj59_7_v9sd",
+   "name": "王金豪",
+   "event": "全马",
+   "sec": 260,
+   "fmt": "4:20",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789470982701,
+   "sex": "男",
+   "college": "林学院"
   }
  ],
  "pbHidden": [
@@ -908,5 +999,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T11:14:33.802Z"
+ "updated": "2026-09-15T11:16:28.574Z"
 };
