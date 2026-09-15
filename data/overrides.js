@@ -542,7 +542,8 @@ window.TEAM_OVERRIDES = {
    "level": [
     "正式"
    ],
-   "sex": "男"
+   "sex": "男",
+   "photo": "images/avatars/mhmttw.jpg"
   }
  },
  "newMembers": [],

@@ -13,10 +13,10 @@ spec = importlib.util.spec_from_file_location("ph", os.path.join(HERE, "手机�
 ph = importlib.util.module_from_spec(spec); spec.loader.exec_module(ph)
 
 DRAFT = {
+    # 跟用户电脑里真实的本机草稿一模一样：只有身份/年级等信息，photo 字段被另一个标签页冲掉了
     "memberEdits": {
         "王金豪": {"college": "林学院", "major": "", "grade": "2024",
-                    "level": ["正式"], "sex": "男",
-                    "photo": "images/avatars/mhmttw.jpg"}
+                    "level": ["正式"], "sex": "男"}
     }
 }
 
