@@ -581,6 +581,21 @@ window.TEAM_OVERRIDES = {
     "meet": "",
     "ts": 1789431065308,
     "note": ""
+   },
+   {
+    "uid": "rmu22zwtm_1_my9l",
+    "name": "李志宏",
+    "event": "半马",
+    "raw": "1：23:29",
+    "sec": 5009,
+    "fmt": "1:23:29",
+    "sex": "男",
+    "college": "林学院",
+    "date": "2025.4.13",
+    "rank": "",
+    "meet": "2025杨凌农科城马拉松赛",
+    "ts": 1789441047274,
+    "note": ""
    }
   ]
  },
@@ -689,5 +704,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T02:29:54.108Z"
+ "updated": "2026-09-15T03:11:04.737Z"
 };
