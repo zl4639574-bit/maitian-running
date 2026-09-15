@@ -368,7 +368,7 @@ function renderHome() {
   const recs = allResults().length;
   const pb = personalBests();
   const alb = albums();
-  // 最近一次测速：取"所有场次"里日期最新的一场（含队长在线上新加的比赛/测速，不只是本机资料）
+  // 最近一次测速 / 比赛：取"所有场次"里日期最新的一场（含队长在线上新加的比赛/测速，不只是本机资料）
   const comps = competitions().filter(c => (c.records || []).length);
   const latest = comps[0] || null;
   const latestLabel = latest ? (latest.short || latest.name || '') : '';
@@ -420,7 +420,7 @@ function renderHome() {
   ${latest ? `
   <div class="card sec">
     <div class="sec-head">
-      <h2>最近一次测速 · ${esc(latestLabel)}</h2>
+      <h2>最近一次测速 / 比赛 · ${esc(latestLabel)}</h2>
       <button class="btn ghost sm" data-go="board">看最好成绩榜 →</button>
     </div>
     <div class="tiny" style="margin-bottom:14px">${esc(latestDate)} · ${esc(latestEv)} · 共 ${latestRecs.length} 条记录</div>
