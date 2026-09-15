@@ -113,7 +113,7 @@ function secSuspicion(sec, ev) {
   if (!sec || !ev) return '';
   const r = secRange(ev);
   if (sec >= r[0] && sec <= r[1]) return '';
-  return '⚠️ 「' + ev + '」读成 ' + fmtSec(sec) + ' 不太常见，核对一下（想写 1 小时 24 分就写 1:24:00）';
+  return '⚠️ 「' + ev + '」读成 ' + fmtSec(sec) + '，不太像这个项目的成绩 —— 核对一下项目/成绩（半马、全马这类长距离请选对应项目）';
 }
 
 
