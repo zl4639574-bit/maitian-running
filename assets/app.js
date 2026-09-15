@@ -386,6 +386,7 @@ function photoSrc(p) {
 const state = {
   tab: 'home',
   comp: '',                                   // '' = 个人最好成绩，否则是某场比赛的 id
+  compList: false,                            // 成绩榜：是否展开「赛事列表」
   pbEvent: '', pbSex: '', pbQ: '', pbSort: null,
   rosterLevel: '', rosterQ: '', rosterCollege: '',
   album: '', photoCat: '',
@@ -402,7 +403,7 @@ const TABS = {
   member:  [['home', '总览'], ['board', '成绩榜'], ['roster', '队员名册'], ['upload', '上传成绩'], ['photos', '照片墙'], ['about', '荣誉与资料']],
   captain: [['home', '总览'], ['board', '成绩榜'], ['roster', '队员名册'], ['upload', '上传成绩'],
             ['manage', '数据管理'], ['photos', '照片墙'], ['about', '荣誉与资料']],
-  report:  [['upload', '成绩上报']],          // 队员成绩收集页：只填 + 导出，不需要令牌
+  report:  [['upload', '成绩上报'], ['me', '完善我的资料']],   // 队员收集页：填 + 导出，不需要令牌
 };
 
 /* --------------------------------------------------------------- 渲染：总览 */
@@ -507,11 +508,12 @@ function renderBoard() {
   const cur = state.comp ? comps.find(c => c.id === state.comp) : null;
   if (state.comp && !cur) state.comp = '';
 
+  const inComps = !!cur || state.compList;
   const chipsRow = `
   <div class="chips sec">
-    <div class="chip ${state.comp === '' ? 'active' : ''}" data-comp="">个人最好成绩</div>
-    ${comps.map(c => `<div class="chip ${state.comp === c.id ? 'active' : ''}" data-comp="${esc(c.id)}">${esc(c.short || c.name)}
-      <span class="n">${c.records.length}</span></div>`).join('')}
+    <div class="chip ${!inComps ? 'active' : ''}" data-comp="">个人最好成绩</div>
+    <div class="chip ${inComps ? 'active' : ''}" data-complist="1">赛事成绩
+      <span class="n">${comps.length}</span></div>
   </div>`;
 
   const head = `
@@ -544,7 +546,7 @@ function renderBoard() {
         ${cur.note ? '<br>备注：' + esc(cur.note) : ''}
         <br>共 ${cur.records.length} 条记录${guestN ? '（含 ' + guestN + ' 条非队员成绩）' : ''}${evs.length ? '，项目：' + evs.map(esc).join(' / ') : ''}
         ${!cur.builtin ? ' <span class="tagbadge green">队长新增</span>' : ''}
-        ${MODE === 'captain' ? ' · <a href="#" data-go="manage" data-msec="comp">添加/修改这场比赛</a>' : ''}
+        · <a href="#" data-complist="1">← 赛事列表</a>${MODE === 'captain' ? ' · <a href="#" data-go="manage" data-msec="comp">添加/修改这场比赛</a>' : ''}
       </div>
     </div>
 
@@ -579,6 +581,26 @@ function renderBoard() {
           </tr>`).join('') : '<tr><td colspan="8" class="empty">这场比赛还没有成绩</td></tr>'}
         </tbody>
       </table>
+    </div>`;
+  }
+
+  /* ---------- 赛事列表：点进去看某一场 ---------- */
+  if (state.compList) {
+    const rows = comps.slice().sort((a, b) => dateKey(b.date) - dateKey(a.date));
+    return head + chipsRow + `
+    <div class="card sec" style="padding:14px 18px">
+      <div class="tiny" style="line-height:1.8">一共 <b>${rows.length}</b> 场（比赛 + 队内测速）。
+        点一场看那场的完整成绩册；<b>个人最好成绩</b>请点上面的「个人最好成绩」。</div>
+    </div>
+
+    <div class="comp-list">
+      ${rows.map(c => `<div class="comp-row" data-comp="${esc(c.id)}">
+        <div class="l">
+          <div class="t"><b>${esc(c.short || c.name)}</b>${!c.builtin ? ' <span class="tagbadge green">队长新增</span>' : ''}</div>
+          <div class="tiny">${esc(c.date || '日期未标注')}${c.event ? ' · ' + esc(c.event) : ''}${c.records.length ? '' : ' · 还没有成绩'}</div>
+        </div>
+        <div class="r">${c.records.length}<span class="u">条</span> →</div>
+      </div>`).join('')}
     </div>`;
   }
 
@@ -712,10 +734,17 @@ function renderRoster() {
     ${list.length ? list.map(m => {
       const b = memberBests(m.name);
       const items = Object.entries(b).sort((x, y) => (pbOrder(x[0]) - pbOrder(y[0])) || (x[1].sec - y[1].sec)).slice(0, 4);
+      const av = m.photo && /^data:|^https?:/.test(m.photo) ? m.photo
+        : ROOT + (m.photo || 'images/logo.jpg');
       return `
       <div class="pcard">
-        <div class="nm">${esc(m.name)}</div>
-        <div class="meta">${m.grade ? esc(m.grade) + ' 级 · ' : ''}${esc(m.college || '')}${m.major ? ' · ' + esc(m.major) : ''}</div>
+        <div class="head-row">
+          <img class="avatar" src="${esc(av)}" alt="" loading="lazy" onerror="this.src='${ROOT}images/logo.jpg'">
+          <div class="who">
+            <div class="nm">${esc(m.name)}</div>
+            <div class="meta">${m.grade ? esc(m.grade) + ' 级 · ' : ''}${esc(m.college || '')}${m.major ? ' · ' + esc(m.major) : ''}</div>
+          </div>
+        </div>
         <div style="margin-top:8px">
           ${(m.level || []).map(l => `<span class="tagbadge wheat">${esc(l)}</span>`).join('')}
           ${m.sex ? `<span class="tagbadge">${esc(m.sex)}</span>` : ''}
@@ -768,7 +797,11 @@ function renderUpload() {
       <div class="field"><label>性别</label><select id="f_sex"><option value="">未填</option><option>男</option><option>女</option></select></div>
       <div class="field"><label>学院</label><input id="f_college" placeholder="例如 林学院"></div>
       <div class="field"><label>名次（可选）</label><input id="f_rank" placeholder="例如 大学生组第 5"></div>
-      <div class="field"><label>赛事名称 / 备注</label><input id="f_meet" placeholder="例如 2026 杨凌马拉松"></div>
+      <div class="field"><label>赛事名称 / 备注</label>
+        <input id="f_meet" placeholder="例如 2026 杨凌马拉松" list="meetList" autocomplete="off">
+        <datalist id="meetList">${meetCandidates().map(c => `<option value="${esc(c.label)}">`).join('')}</datalist>
+        <div class="tiny" id="meetHint" style="margin-top:4px">打几个字就会自动对上已有的赛事名</div>
+      </div>
     </div>
     <button class="btn" id="btnAdd">添加到我的成绩</button>
     <span class="tiny" style="margin-left:10px">18:35、1:23:22、18'35"、18.5（分钟）都能认</span>
@@ -1150,6 +1183,14 @@ function renderManage() {
       <div class="chips">
         <button class="btn" id="btnFillList">列出信息不全的 ${lackInfoList().length} 人</button>
         <button class="btn ghost" id="btnFillAll">列出名册全部 ${rosterList().length} 人</button>
+        <button class="btn ghost" id="btnDocImport">＋ 导入队员资料（队员发来的文件）</button>
+        <input type="file" id="docFile" accept=".json,.txt,.csv" style="display:none">
+        <span class="tiny" style="flex-basis:100%">队员在「成绩上报 → 完善我的资料」里导出的 .json 小文件（连照片一起）直接选进来；
+          队员发来的一段文字也可以粘在下面（每行「字段 值」，Tab 或冒号分隔，和导出的文本一致）。</span>
+        <textarea class="ta" id="docText" rows="3" style="flex-basis:100%;width:100%"
+          placeholder="姓名	张三&#10;性别	男&#10;学院	林学院&#10;专业	林学&#10;年级	2023&#10;5000米	18:35&#10;半马	无"></textarea>
+        <button class="btn ghost" id="btnDocParse">解析这段文字</button>
+        <div id="docArea" style="flex-basis:100%"></div>
       </div>
       <div id="fillBox">${state.mFillMode ? fillTableHtml(state.mFillMode) : ''}</div>
       <div class="tiny" style="margin-top:14px">批量补全：一行一条 <b>姓名,性别,学院,专业,年级</b>（不补的列就空着或少写；有表头会自动认列）</div>
@@ -1381,12 +1422,13 @@ function render() {
   if (!(TABS[MODE] || []).some(t => t[0] === state.tab)) state.tab = 'home';
   renderNav();
   const map = { home: renderHome, board: renderBoard, roster: renderRoster, upload: renderUpload,
-                manage: renderManage, photos: renderPhotos, about: renderAbout };
+                manage: renderManage, photos: renderPhotos, about: renderAbout, me: renderMe };
   $('#page').innerHTML = (map[state.tab] || renderHome)()
     + `<div class="foot">${esc(teamInfo().name || '')} · 数据中心
          <br><a href="${ROOT}guide.txt" target="_blank">📖 ${MODE === 'view' ? '使用说明' : '使用说明（怎么上传 / 怎么改）'}</a>
          <br><span style="opacity:.7">数据更新于 ${esc(BASE.generated || '')}</span></div>`;
   if (state.tab === 'upload') bindUpload();
+  if (state.tab === 'me') bindMe();
   if (state.tab === 'manage') bindManage();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1431,6 +1473,8 @@ function bindUpload() {
     renderPasteArea();
   };
 
+
+
   const drop = $('#drop'), fi = $('#fileInput');
   if (drop && fi) {
     drop.onclick = () => fi.click();
@@ -1439,6 +1483,25 @@ function bindUpload() {
     drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) readTableFile(e.dataTransfer.files[0]); });
     fi.onchange = () => { if (fi.files[0]) readTableFile(fi.files[0]); };
   }
+
+  const mi = $('#f_meet');
+  if (mi) mi.oninput = () => {
+    const h = $('#meetHint');
+    if (!h) return;
+    const v = mi.value.trim();
+    if (!v) { h.innerHTML = '打几个字就会自动对上已有的赛事名'; return; }
+    const m = meetMatch(v);
+    if (m && meetNorm(m.label) === meetNorm(v)) {
+      h.innerHTML = '✅ 对上了已有赛事：<b>' + esc(m.label) + '</b>';
+    } else if (m) {
+      h.innerHTML = '≈ 最像已有赛事：<b>' + esc(m.label) + '</b>　'
+        + '<a href="#" id="meetUse">用这个</a>　（不点它就会算成新赛事）';
+      const u = $('#meetUse');
+      if (u) u.onclick = (e) => { e.preventDefault(); mi.value = m.label; mi.oninput(); };
+    } else {
+      h.innerHTML = '🆕 这是新赛事名（队长那边会新建/合并这一场）';
+    }
+  };
 
   const cp = $('#btnCopy');
   if (cp) cp.onclick = () => {
@@ -1662,6 +1725,208 @@ function doImport() {
   render();
 }
 
+/* ---------------- 队员「完善我的资料」收集页 ---------------- */
+
+const ME_PB = ['800米', '1500米', '3000米', '5000米', '10000米', '半马', '全马'];
+const LS_ME = 'mt_me_v1';
+
+function meDraft() {
+  const v = lsGet(LS_ME, null);                 // lsGet 已经 JSON.parse 过，别再 parse 一次
+  return (v && typeof v === 'object') ? v : {};
+}
+function saveMeDraft(d) { lsSet(LS_ME, d); }
+
+/** 资料文本（队长能直接粘贴导入） */
+function meText(d) {
+  const pb = d.pb || {};
+  const lines = ['#麦田守望 队员资料',
+    '姓名\t' + (d.name || ''),
+    '性别\t' + (d.sex || ''),
+    '学院\t' + (d.college || ''),
+    '专业\t' + (d.major || ''),
+    '年级\t' + (d.grade || '')];
+  ME_PB.forEach(ev => { lines.push(ev + '\t' + ((pb[ev] || '').trim() || '无')); });
+  lines.push('照片\t' + (d.photo ? '（在导出的资料文件里）' : '无'));
+  return lines.join('\n');
+}
+
+function renderMe() {
+  const d = meDraft();
+  const pb = d.pb || {};
+  const names = rosterList().map(m => m.name);
+  const inRoster = d.name && names.indexOf(d.name) >= 0;
+  return `
+  <div class="sec-head"><h1>完善我的资料</h1>
+    ${d.name ? `<button class="btn ghost sm" data-go="upload">去上报成绩 →</button>` : ''}</div>
+
+  <div class="notice" style="margin-bottom:16px">
+    <b>填完怎么交给队长</b><br>
+    ① 把下面填好（最好成绩没有的就填「无」）；② 点「复制资料文本」或「导出资料文件（含照片）」；<br>
+    ③ 发给队长，队长会把它写进队员名册和成绩榜。<br>
+    <span class="tiny">不用登录、不会自动上传；照片只在你自己手机上，随资料文件发给队长。</span>
+  </div>
+
+  <div class="card sec">
+    <h2>① 基本信息</h2>
+    <div class="grid2" style="margin-bottom:14px">
+      <div class="field"><label>姓名 *</label><input id="me_name" value="${esc(d.name || '')}" list="meNameList" placeholder="例如 张津浩">
+        <datalist id="meNameList">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+        <div class="tiny" style="margin-top:4px">${d.name ? (inRoster ? '✅ 在名册里，队长会更新你的资料' : '❓ 名册里还没有这个名字，队长会新增一位') : '开始输入姓名'}</div>
+      </div>
+      <div class="field"><label>性别</label><select id="me_sex">
+        ${['', '男', '女'].map(v => `<option value="${v}" ${(d.sex || '') === v ? 'selected' : ''}>${v || '未填'}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>学院</label><input id="me_college" value="${esc(d.college || '')}" placeholder="例如 林学院"></div>
+      <div class="field"><label>专业 / 班级</label><input id="me_major" value="${esc(d.major || '')}" placeholder="例如 林学 2301"></div>
+      <div class="field"><label>年级</label><input id="me_grade" value="${esc(d.grade || '')}" placeholder="例如 2023"></div>
+    </div>
+
+    <h2 style="margin-top:6px">② 个人最好成绩（没有就填「无」）</h2>
+    <div class="tiny" style="margin-bottom:10px">从 800 米到全马，跑过的就填最好一次（如 2:15、18:35、1:23:29）；没跑过的填「无」。</div>
+    <div class="grid2">
+      ${ME_PB.map(ev => `<div class="field"><label>${esc(ev)}</label>
+        <div style="display:flex;gap:6px">
+          <input id="me_pb_${esc(ev)}" value="${esc(pb[ev] || '')}" placeholder="无 / 成绩" style="flex:1">
+          <button class="btn flat sm" data-menone="${esc(ev)}" style="white-space:nowrap">无</button>
+        </div></div>`).join('')}
+    </div>
+
+    <h2 style="margin-top:18px">③ 个人照片（可选）</h2>
+    <div class="tiny" style="margin-bottom:10px">选一张正脸照，会自动压小；没上传的，名册里先用队徽显示。</div>
+    <div class="drop" id="mePhotoDrop">
+      <div class="big">🖼</div>
+      <div><b>点这里选照片</b>（手机可以从相册选）</div>
+      <div class="tiny" style="margin-top:6px">jpg / png / heic 截图都行，会压到 360px 左右</div>
+      <input type="file" id="mePhotoFile" accept="image/*" style="display:none">
+    </div>
+    ${d.photo ? `<div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+      <img class="avatar" style="width:72px;height:72px" src="${esc(d.photo)}">
+      <button class="btn danger sm" id="mePhotoDel">删除照片</button></div>` : ''}
+
+    <div class="chips" style="margin-top:20px">
+      <button class="btn" id="meSave">保存资料</button>
+      <button class="btn ghost" id="meCopy" ${d.name ? '' : 'disabled'}>复制资料文本</button>
+      <button class="btn ghost" id="meExport" ${d.name ? '' : 'disabled'}>导出资料文件（含照片）</button>
+    </div>
+    <div class="tiny" style="margin-top:8px">「资料文件」是一个 .json 小文件，里面连照片一起打包，队长选这个文件就能一次导入。</div>
+  </div>`;
+}
+
+function bindMe() {
+  const g = id => { const el = $(id); return el ? el.value.trim() : ''; };
+  const collect = () => {
+    const d = meDraft();
+    const pb = {};
+    ME_PB.forEach(ev => { pb[ev] = g('#me_pb_' + ev); });
+    return Object.assign({}, d, {
+      type: 'maitian-member', name: g('#me_name'), sex: g('#me_sex'),
+      college: g('#me_college'), major: g('#me_major'), grade: g('#me_grade'),
+      pb: pb, updated: new Date().toISOString(),
+    });
+  };
+  const save = () => { saveMeDraft(collect()); return meDraft(); };
+
+  $$('[data-menone]').forEach(b => b.onclick = () => {
+    const el = $('#me_pb_' + b.dataset.menone);
+    if (el) el.value = '无';
+    toast('已填「无」');
+  });
+  const sv = $('#meSave');
+  if (sv) sv.onclick = () => { const d = save(); toast('已保存到本机：' + (d.name || '（还没填姓名）'), 5000); render(); };
+  const cp = $('#meCopy');
+  if (cp) cp.onclick = () => { copyText(meText(save())); toast('资料文本已复制，粘给队长即可', 6000); };
+  const ex = $('#meExport');
+  if (ex) ex.onclick = () => {
+    const d = save();
+    download('麦田守望_我的资料_' + (d.name || '未填') + '.json', JSON.stringify(d, null, 1));
+    toast('已导出，把这个文件发给队长', 6000);
+  };
+  const drop = $('#mePhotoDrop'), fi = $('#mePhotoFile');
+  if (drop && fi) {
+    drop.onclick = () => fi.click();
+    fi.onchange = () => { if (fi.files[0]) shrinkPhoto(fi.files[0]); };
+  }
+  const pd = $('#mePhotoDel');
+  if (pd) pd.onclick = () => { const d = meDraft(); delete d.photo; saveMeDraft(d); toast('已删除照片'); render(); };
+
+  const nm = $('#me_name');
+  if (nm) nm.onblur = () => { const d = save(); if (d.name) render(); };
+}
+
+/** 照片压到 360px、JPEG 0.82，存成 dataURL（几十 KB） */
+function shrinkPhoto(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 360;
+      const sc = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      const url = cv.toDataURL('image/jpeg', 0.82);
+      const d = meDraft();
+      d.photo = url;
+      saveMeDraft(d);
+      toast('照片已就绪（' + Math.round(url.length / 1024) + ' KB），记得点「保存资料」', 6000);
+      render();
+    };
+    img.onerror = () => toast('这张图读不了，换一张试试');
+    img.src = fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+/* ---------------- 赛事名匹配（上报时自动对到已有赛事）---------------- */
+
+/** 归一化：去掉空格、标点、年月日等，方便比对 */
+function meetNorm(t) {
+  return String(t || '').toLowerCase()
+    .replace(/[\s　]/g, '')
+    .replace(/[（）()【】\[\]「」《》·,，.。、:：;；!！?？"'”“\-—_/\\|]/g, '')
+    .replace(/20\d\d年?/g, '')
+    .replace(/(比赛|赛事|马拉松|半马|全马|测速|测试|春季|冬季|秋季|夏季|校内|校园|校运会|运动会)/g, '');
+}
+/** 最长公共子串长度 */
+function lcsLen(a, b) {
+  let best = 0;
+  const dp = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = 0;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = dp[j];
+      dp[j] = (a[i - 1] === b[j - 1]) ? prev + 1 : 0;
+      if (dp[j] > best) best = dp[j];
+      prev = tmp;
+    }
+  }
+  return best;
+}
+/** 已有赛事的候选名（含短名） */
+function meetCandidates() {
+  const out = [];
+  competitions().forEach(c => {
+    if (c.name) out.push({ label: c.name, id: c.id });
+    if (c.short && c.short !== c.name) out.push({ label: c.short, id: c.id });
+  });
+  return out;
+}
+/** 找最像的已有赛事；没有够像的就返回 null（= 新赛事） */
+function meetMatch(v) {
+  const q = meetNorm(v);
+  if (q.length < 2) return null;
+  let best = null;
+  meetCandidates().forEach(c => {
+    const n = meetNorm(c.label);
+    if (!n) return;
+    let sc = lcsLen(q, n) / Math.min(q.length, n.length);
+    if (n.indexOf(q) >= 0 || q.indexOf(n) >= 0) sc += 0.25;
+    if (n === q) sc = 1;
+    if (!best || sc > best.sc) best = { sc: sc, label: c.label, id: c.id };
+  });
+  return (best && best.sc >= 0.45) ? best : null;
+}
+
 /* ---------------- 粘贴文本导入（队员上报的文字直接用）---------------- */
 
 let pasteRows = null;
@@ -1763,6 +2028,125 @@ async function publishAndSync() {
   toast('已发布 ' + n + ' 条，正在同步到线上…（约 1 分钟）', 6000);
   await pushToGitHub();
 }
+/* ---------------- 队员资料导入（队长版）---------------- */
+
+/** 文件名用名字的哈希，避免中文文件名 */
+function avatarPathFor(name) {
+  let h = 0;
+  const t = String(name || '');
+  for (let i = 0; i < t.length; i++) { h = (h * 31 + t.charCodeAt(i)) % 1000000007; }
+  return 'images/avatars/m' + h.toString(36) + '.jpg';
+}
+
+function parseMemberDoc(text) {
+  const t = String(text || '').trim();
+  const out = { pb: {} };
+  if (t.charAt(0) === '{') {
+    try {
+      const j = JSON.parse(t);
+      if (j && (j.type === 'maitian-member' || j.name)) return j;
+    } catch (e) { /* 不是 JSON 就按文本解析 */ }
+  }
+  t.split(/\r?\n/).forEach(line => {
+    const s2 = line.replace(/^#.*$/, '').trim();
+    if (!s2) return;
+    const p = s2.split(/[\t:：]+/).map(x => x.trim());
+    if (p.length < 2) return;
+    const k = p[0], v = p.slice(1).join(' ').trim();
+    if (k === '姓名' || k === '名字') out.name = v;
+    else if (k === '性别') out.sex = v;
+    else if (k === '学院') out.college = v;
+    else if (k === '专业' || k === '专业班级') out.major = v;
+    else if (k === '年级') out.grade = v;
+    else if (ME_PB.indexOf(k) >= 0) out.pb[k] = v;
+  });
+  if (!out.name && !Object.keys(out.pb).length) return null;
+  return out;
+}
+
+async function applyMemberDoc(doc) {
+  if (!doc || !doc.name) return toast('这份资料里没有姓名，导入不了');
+  const o = ovLocal();
+  o.memberEdits = o.memberEdits || {};
+  const e = o.memberEdits[doc.name] || {};
+  ['sex', 'college', 'major', 'grade'].forEach(k => {
+    const v = String(doc[k] || '').trim();
+    if (v && v !== '无') e[k] = v;
+  });
+  // 照片：有令牌就直接传成仓库里的头像；没有就先存 dataURL（下次同步一起带上）
+  let photoNote = '';
+  if (doc.photo && /^data:image\//.test(doc.photo)) {
+    const cfg = ghCfg();
+    const path = avatarPathFor(doc.name);
+    if (cfg.token) {
+      try {
+        const b64 = doc.photo.split(',')[1];
+        await ghPut(cfg, path, b64, '头像：' + doc.name);
+        e.photo = path;
+        photoNote = '，头像已上传';
+      } catch (err) {
+        e.photo = doc.photo;
+        photoNote = '，头像暂时存在本机（' + String(err.message || err).slice(0, 40) + '）';
+      }
+    } else {
+      e.photo = doc.photo;
+      photoNote = '，头像先存本机（配好令牌后重新导入就会传上去）';
+    }
+  }
+  o.memberEdits[doc.name] = e;
+  saveLocalOv();
+
+  // 最好成绩：非「无」的进个人最好成绩榜
+  const pbs = doc.pb || {};
+  const add = [];
+  ME_PB.forEach(ev => {
+    const v = String(pbs[ev] || '').trim();
+    if (!v || v === '无' || v === '-') return;
+    const sec = secFromCell(v);
+    if (!sec) return;
+    add.push({ uid: newUid(), name: doc.name, event: ev, sec: Math.round(sec * 10) / 10,
+      fmt: fmtSec(sec), date: '', meet: '队员自报', rank: '', ts: Date.now(),
+      sex: e.sex || '', college: e.college || '' });
+  });
+  if (add.length) {
+    o.pbAdded = mergePbAdded(o.pbAdded || [], add);
+    saveLocalOv();
+  }
+  return { name: doc.name, info: ['sex', 'college', 'major', 'grade'].filter(k => e[k]).length,
+    pbs: add.length, photo: !!e.photo, photoNote: photoNote };
+}
+
+function renderMemberDocPreview() {
+  const box = $('#docArea');
+  if (!box) return;
+  const d = memberDocQueue;
+  if (!d) { box.innerHTML = ''; return; }
+  const memNames = new Set(rosterList().map(m => m.name));
+  const pbRows = Object.keys(d.doc.pb || {}).filter(k => d.doc.pb[k] && d.doc.pb[k] !== '无');
+  box.innerHTML = `
+    <div class="notice" style="margin-top:12px">
+      <b>${esc(d.doc.name)}</b>　${memNames.has(d.doc.name) ? '<span class="tagbadge green">在名册里</span>' : '<span class="tagbadge">名册里没有 → 会新增一位</span>'}<br>
+      信息：${['sex', 'college', 'major', 'grade'].filter(k => d.doc[k]).map(k => esc(d.doc[k])).join(' / ') || '（没填）'}<br>
+      最好成绩：${pbRows.length ? pbRows.map(k => esc(k) + ' ' + esc(d.doc.pb[k])).join('　') : '（全填了无）'}<br>
+      照片：${d.doc.photo ? '有（' + Math.round(String(d.doc.photo).length / 1024) + ' KB）' : '没有'}
+    </div>
+    <div class="chips" style="margin-top:10px">
+      <button class="btn" id="btnDocApply">导入这份资料</button>
+      <button class="btn flat sm" id="btnDocCancel">取消</button>
+    </div>`;
+  const a = $('#btnDocApply'), c2 = $('#btnDocCancel');
+  if (c2) c2.onclick = () => { memberDocQueue = null; render(); };
+  if (a) a.onclick = async () => {
+    a.disabled = true; a.textContent = '导入中…';
+    const r = await applyMemberDoc(d.doc);
+    memberDocQueue = null;
+    render();
+    if (r) toast('已导入「' + r.name + '」：信息 ' + r.info + ' 项、最好成绩 ' + r.pbs + ' 条' + r.photoNote, 10000);
+  };
+}
+
+let memberDocQueue = null;
+
 function addCompRecords(compId, recs) {
   const l = ovLocal();
   l.compRecords = l.compRecords || {};
@@ -2497,6 +2881,31 @@ function renderNmBatch() {
 }
 
 function bindManage() {
+
+  const dF = $('#docFile'), dI = $('#btnDocImport');
+  if (dI && dF) dI.onclick = () => dF.click();
+  if (dF) dF.onchange = () => {
+    const f = dF.files[0];
+    dF.value = '';
+    if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      const doc = parseMemberDoc(fr.result);
+      if (!doc) return toast('没看懂这份资料：应该包含「姓名」和各项成绩');
+      memberDocQueue = { doc: doc };
+      toast('已读取 ' + f.name + '，确认下面这份就点导入');
+      renderMemberDocPreview();
+    };
+    fr.readAsText(f);
+  };
+  const dP = $('#btnDocParse');
+  if (dP) dP.onclick = () => {
+    const ta = $('#docText');
+    const doc = parseMemberDoc(ta ? ta.value : '');
+    if (!doc) return toast('没看懂：每行写成「字段 值」，比如 姓名 张三');
+    memberDocQueue = { doc: doc };
+    renderMemberDocPreview();
+  };
   const cfg = ghCfg();
   $$('[data-cfg]').forEach(el => el.onchange = () => {
     cfg[el.dataset.cfg] = el.value.trim();
@@ -3420,13 +3829,19 @@ async function loadCloud(force) {
 }
 
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-tab],[data-go],[data-album],[data-lvl],[data-ev],[data-sex],[data-msec],[data-comp],[data-ty],[data-photo],[data-lb]');
+  const t = e.target.closest('[data-tab],[data-go],[data-album],[data-lvl],[data-ev],[data-sex],[data-msec],[data-comp],[data-complist],[data-ty],[data-photo],[data-lb]');
   if (!t) return;
   const d = t.dataset;
   if (d.tab) return goTab(d.tab);
   if (d.go) return goTab(d.go, { msec: d.msec });
   if (d.msec) { state.manageSec = d.msec; return render(); }
-  if (d.comp !== undefined && t.classList.contains('chip')) { state.comp = d.comp; state.pbQ = ''; state.pbSex = ''; return render(); }
+  if (d.complist !== undefined) { state.compList = true; state.comp = ''; state.pbQ = ''; state.pbSex = ''; return render(); }
+  if (d.comp !== undefined && (t.classList.contains('chip') || t.classList.contains('comp-row')
+      || t.closest('.comp-row') || t.classList.contains('l') || t.classList.contains('t') || t.classList.contains('r'))) {
+    const row = t.closest('.comp-row');
+    state.comp = row ? row.dataset.comp : d.comp;
+    state.compList = false; state.pbQ = ''; state.pbSex = ''; return render();
+  }
   if (d.ty !== undefined && t.classList.contains('chip')) {
     const f = $('#f_event');
     if (f) { f.value = d.ty; $$('[data-ty]').forEach(x => x.classList.toggle('active', x === t)); }

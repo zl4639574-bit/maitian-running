@@ -294,3 +294,24 @@ table.tbl tbody tr.grp td{background:#faf7f0;font-weight:700;color:var(--wheat);
   .mrow-f input,.mrow-f select{flex:1 1 100%}
   .mrow-f .w60{flex:0 0 78px}
 }
+
+/* ------------------------------------------------ 赛事列表 / 队员头像 */
+
+.comp-list { margin-top: 8px; }
+.comp-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 14px 18px; margin-bottom: 10px; cursor: pointer;
+  transition: box-shadow .18s, transform .18s, border-color .18s;
+}
+.comp-row:hover { box-shadow: 0 8px 22px rgba(20,120,31,.10); border-color: var(--green-line); }
+.comp-row .t { font-size: 15px; color: var(--t1); }
+.comp-row .r { color: var(--green); font-weight: 700; font-size: 17px; white-space: nowrap; }
+.comp-row .r .u { font-size: 12px; font-weight: 400; color: var(--t3); margin-left: 2px; }
+.avatar {
+  width: 46px; height: 46px; border-radius: 50%; object-fit: cover;
+  background: var(--green-soft); border: 1px solid var(--green-line); flex: 0 0 auto;
+}
+.pcard .head-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.pcard .head-row .who { min-width: 0; }
+.pcard .head-row .nm { margin-bottom: 2px; }
