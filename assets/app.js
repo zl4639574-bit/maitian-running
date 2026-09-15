@@ -2006,12 +2006,24 @@ function isHeicBytes(buf) {
   return true;
 }
 function loadHeifLib() {
-  if (window.libheif) return Promise.resolve(window.libheif);
+  if (window.__heifMod) return Promise.resolve(window.__heifMod);
   if (_heifLoading) return _heifLoading;
   _heifLoading = new Promise((res, rej) => {
+    const done = (mod) => {
+      if (!mod || !mod.HeifDecoder) { _heifLoading = null; return rej(new Error('解码器结构不对')); }
+      window.__heifMod = mod; res(mod);
+    };
+    const useFactory = (f) => {
+      try {
+        // libheif-bundle.js 导出的是 Emscripten 的工厂函数，要先调一次才拿到模块（拿到 HeifDecoder）
+        const mod = (typeof f === 'function') ? f({}) : f;
+        Promise.resolve(mod).then(done, (e) => { _heifLoading = null; rej(e); });
+      } catch (e) { _heifLoading = null; rej(e); }
+    };
+    if (window.libheif) return useFactory(window.libheif);
     const sc = document.createElement('script');
     sc.src = ROOT + 'assets/libheif-bundle.js';
-    sc.onload = () => window.libheif ? res(window.libheif) : rej(new Error('解码器加载了但没挂上'));
+    sc.onload = () => window.libheif ? useFactory(window.libheif) : (() => { _heifLoading = null; rej(new Error('解码器加载了但没挂上')); })();
     sc.onerror = () => { _heifLoading = null; rej(new Error('解码器没加载成功')); };
     document.head.appendChild(sc);
   });
@@ -2032,18 +2044,35 @@ async function heicToJpegDataUrl(file) {
   cv.width = w; cv.height = h;
   const ctx = cv.getContext('2d');
   const idt = ctx.createImageData(w, h);
-  await new Promise((res, rej) => im.display(idt, (err) => err ? rej(err) : res()));
+  await new Promise((res, rej) => im.display(idt, (r) => {
+    // libheif 的回调：成功时传回来的是填好像素的 ImageData（真值），失败才给假值
+    if (r === false || r === null) return rej(new Error('这张 HEIC 解不开（像素没出来）'));
+    if (r && r.message && !r.data) return rej(r);
+    res();
+  }));
   ctx.putImageData(idt, 0, 0);
   return cv.toDataURL('image/jpeg', 0.82);
 }
 /** 统一的取图入口：HEIC 走解码器，其它原样交给 FileReader */
 function feedPhoto(f, fr, onFail) {
+  const plainRead = () => {
+    if (onFail) fr.onerror = () => onFail(new Error('这张图读不了'));
+    fr.readAsDataURL(f);
+  };
   (async () => {
+    let conv = null;
     try {
-      const conv = await heicToJpegDataUrl(f);
-      if (conv) { fr.onload({ target: { result: conv } }); return; }
-    } catch (e) { if (onFail) onFail(e); else toast('这张 HEIC 转不了：' + (e && e.message) + '（可以先在相册里转成 JPG）', 11000); return; }
-    feedPhoto(f, fr, () => { bad.push(f.name); finish(); });
+      conv = await heicToJpegDataUrl(f);
+    } catch (e) {
+      if (onFail) onFail(e);
+      else toast('这张 HEIC 转不了：' + ((e && e.message) || '') + '（可以先在相册里转成 JPG）', 11000);
+      return;
+    }
+    if (conv) {
+      try { fr.onload({ target: { result: conv } }); } catch (e) { if (onFail) onFail(e); }
+      return;
+    }
+    plainRead();
   })();
 }
 
