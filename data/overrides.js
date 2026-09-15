@@ -475,10 +475,13 @@ window.TEAM_OVERRIDES = {
    "grade": "2022"
   },
   "李志宏": {
-   "sex": "男",
    "college": "林学院",
    "major": "智林2301",
-   "grade": "2023"
+   "grade": "2023",
+   "level": [
+    "正式"
+   ],
+   "sex": "男"
   },
   "阿巴小洛": {
    "college": "林学院",
@@ -780,5 +783,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T03:40:24.645Z"
+ "updated": "2026-09-15T06:47:14.376Z"
 };
