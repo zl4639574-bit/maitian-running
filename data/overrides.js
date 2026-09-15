@@ -20,7 +20,8 @@ window.TEAM_OVERRIDES = {
   "李志宏",
   "刘艳",
   "张哲珩",
-  "贾可欣"
+  "贾可欣",
+  "王俊豪"
  ],
  "memberEdits": {
   "郭家俊": {
@@ -907,5 +908,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T09:57:57.793Z"
+ "updated": "2026-09-15T10:00:34.118Z"
 };
