@@ -737,6 +737,10 @@ window.TEAM_OVERRIDES = {
  "hiddenRecords": [
   "cmu14r7vj|李志宏|5009"
  ],
+ "hiddenPhotos": [
+  "up_1789455145417_4.jpg"
+ ],
+ "shownPhotos": [],
  "hall": [],
  "queue": null,
  "photos": [
@@ -903,5 +907,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T09:41:32.849Z"
+ "updated": "2026-09-15T09:56:28.402Z"
 };
