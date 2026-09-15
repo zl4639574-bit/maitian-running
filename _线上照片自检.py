@@ -49,6 +49,9 @@ def main():
         ok = bool(res and res["wall"] and res["nDel"] == res["wall"] and res["albTotal"] == res["wall"] + (res["removed"] or 0))
         print("\n线上照片管理区有「删/恢复」：%s" % ("✅ 上线可用（照片墙 %d 张）" % (res and res["wall"]) if ok else "❌ 还没上线或数量对不上"))
         if shot:
+            c.js("(function(){const h=Array.from(document.querySelectorAll('h3')).find(x=>x.textContent.indexOf('照片墙上的照片')>=0);"
+                 "if(h)h.scrollIntoView({block:'start'}); return 1;})()")
+            time.sleep(1.0)
             r2 = c.send("Page.captureScreenshot", format="png", captureBeyondViewport=False)
             io.open(shot, "wb").write(base64.b64decode(r2["data"]))
             print("截图：", shot)

@@ -1411,7 +1411,7 @@ function renderManage() {
       <div class="pgrid">${wallList.map((p, i) => `
         <div class="pitem"><img src="${photoSrc(p)}" loading="lazy" alt="">
           <button class="btn danger sm" data-phdel="${i}" style="position:absolute;top:6px;right:6px">删</button>
-          <div class="tiny" style="margin-top:4px">${esc(p.album || '')}${p.albumDate ? ' · ' + esc(p.albumDate) : ''}</div></div>`).join('')}
+          <div class="cap">${esc(p.album || '')}${p.albumDate ? ' · ' + esc(p.albumDate) : ''}</div></div>`).join('')}
       </div>
     </div>` : ''}
     ${removedList.length ? `
@@ -1420,7 +1420,8 @@ function renderManage() {
       <div class="tiny" style="margin:8px 0 12px">这些照片别人看不到（同步后线上也没有）。点 ↺ 恢复显示。</div>
       <div class="pgrid">${removedList.map((p, i) => `
         <div class="pitem" style="opacity:.55"><img src="${photoSrc(p)}" loading="lazy" alt="">
-          <button class="btn ghost sm" data-phrestore="${i}" style="position:absolute;top:6px;right:6px">↺ 恢复</button></div>`).join('')}
+          <button class="btn ghost sm" data-phrestore="${i}" style="position:absolute;top:6px;right:6px">↺ 恢复</button>
+          <div class="cap">${esc(p.album || '')}${p.albumDate ? ' · ' + esc(p.albumDate) : ''}</div></div>`).join('')}
       </div>
     </div>` : ''}
     ${(CLOUD_OV && (CLOUD_OV.photos || []).length) ? `
