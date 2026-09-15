@@ -530,6 +530,9 @@ function renderBoard() {
     rows.sort((a, b) => distM(b.event) - distM(a.event) || String(a.event).localeCompare(String(b.event), 'zh') || a.sec - b.sec);
     const rk = {};
     rows.forEach(r => { rk[r.event || ''] = (rk[r.event || ''] || 0) + 1; r._rk = rk[r.event || '']; });
+    // 名册里没有的人 = 非队员（跑团朋友、外校选手…）：只显示在这场的榜里
+    const memSet = new Set(rosterList().map(m => m.name));
+    const guestN = rows.filter(r => r.name && !memSet.has(r.name)).length;
 
     return head + chipsRow + `
     <div class="card sec" style="padding:16px 20px">
@@ -538,7 +541,7 @@ function renderBoard() {
         ${cur.date ? ' · ' + esc(cur.date) : ''}
         ${cur.source ? '<br>来源：' + esc(cur.source) : ''}
         ${cur.note ? '<br>备注：' + esc(cur.note) : ''}
-        <br>共 ${cur.records.length} 条记录${evs.length ? '，项目：' + evs.map(esc).join(' / ') : ''}
+        <br>共 ${cur.records.length} 条记录${guestN ? '（含 ' + guestN + ' 条非队员成绩）' : ''}${evs.length ? '，项目：' + evs.map(esc).join(' / ') : ''}
         ${!cur.builtin ? ' <span class="tagbadge green">队长新增</span>' : ''}
         ${MODE === 'captain' ? ' · <a href="#" data-go="manage" data-msec="comp">添加/修改这场比赛</a>' : ''}
       </div>
@@ -565,7 +568,7 @@ function renderBoard() {
         ${rows.length ? rows.map(r => `
           <tr>
             <td class="rank ${MEDAL[r._rk] ? 'top' + r._rk : ''}">${r._rk}</td>
-            <td><b>${esc(r.name)}</b></td>
+            <td><b>${esc(r.name)}</b>${memSet.has(r.name) ? '' : ' <span class="tagbadge" title="不在队伍名册里，只进这一场的榜">非队员</span>'}</td>
             <td class="sex-b hide-sm">${esc(r.sex || '')}</td>
             ${evs.length > 1 ? `<td class="tiny">${esc(r.event || '')}</td>` : ''}
             <td class="tm">${esc(r.fmt || fmtSec(r.sec))}</td>
@@ -728,6 +731,7 @@ function renderRoster() {
 
 function renderUpload() {
   const L = myResults().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const rosterNames = new Set(rosterList().map(m => m.name));
   const batch = MODE === 'captain';
 
   return `
@@ -767,7 +771,9 @@ function renderUpload() {
       <div class="big">📄</div>
       <div><b>把表格拖到这里</b>，或 <span style="color:var(--wheat);font-weight:700">点击选择文件</span></div>
       <div class="tiny" style="margin-top:8px">手机上点这里会打开文件选择器，选微信里收到的成绩表也能用<br>
-        支持 .xlsx / .xls / .csv</div>
+        支持 .xlsx / .xls / .csv｜<b>整场成绩单（含非队员、外校选手）可以直接拖进来</b>：
+        导入后在「数据管理 → 比赛成绩」新建一场比赛，点「把本机录入的成绩并进这场比赛」，就成了一张完整的榜；
+        非队员只出现在这场榜里，不会进名册、也不会进个人最好成绩榜</div>
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
     </div>
     <div id="importArea"></div>
@@ -787,7 +793,7 @@ function renderUpload() {
         <thead><tr><th class="no-sort">姓名</th><th class="no-sort">项目</th><th class="no-sort">成绩</th>
           <th class="no-sort hide-sm">日期</th><th class="no-sort hide-sm">赛事 / 备注</th><th class="no-sort"></th></tr></thead>
         <tbody>${L.map(r => `
-          <tr><td><b>${esc(r.name)}</b>${r.submitted ? ' <span class="tagbadge green">已提交</span>' : ''}</td>
+          <tr><td><b>${esc(r.name)}</b>${r.submitted ? ' <span class="tagbadge green">已提交</span>' : ''}${rosterNames.has(r.name) ? '' : ' <span class="tagbadge">非队员</span>'}</td>
             <td class="tiny">${esc(r.event)}</td>
             <td class="tm">${esc(r.fmt || fmtSec(r.sec))}</td><td class="tiny hide-sm">${esc(r.date || '')}</td>
             <td class="tiny hide-sm">${esc(r.meet || '')}${r.rank ? ' · ' + esc(r.rank) : ''}</td>
@@ -1432,11 +1438,38 @@ function bindUpload() {
 
 /* -------- 批量导入（队长版，手机上也能用） -------- */
 
+/** 成绩单元格 → 秒。支持：17:35 / 1:23:29 / 18'35" / 18.5（分钟）
+    / Excel 里存成时间格式（显示 17:35，实际值 0.7326）/ 直接是秒数（1022 = 17:02） */
+function secFromCell(v) {
+  const t = String(v == null ? '' : v).trim();
+  if (t === '') return 0;
+  if (/^\d+(\.\d+)?$/.test(t)) {
+    const n = parseFloat(t);
+    if (n > 0 && n < 1) return Math.round(n * 86400);   // Excel 时间格式（一天的比例）
+    if (n >= 60 && n <= 86400) return Math.round(n);    // 直接写秒数
+  }
+  return parseSec(v);
+}
+
 function readTableFile(file) {
+  const isCsv = /\.csv$/i.test(file.name || '');
   const r = new FileReader();
   r.onload = e => {
     try {
-      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const buf = new Uint8Array(e.target.result);
+      let wb;
+      if (isCsv) {
+        // CSV：先按 UTF-8 解；乱码（微信/国内软件导出的 GBK 表）就改按 GBK 解
+        let txt;
+        try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+        catch (err) {
+          try { txt = new TextDecoder('gbk').decode(buf); }
+          catch (e2) { txt = new TextDecoder('utf-8').decode(buf); }
+        }
+        wb = XLSX.read(txt.replace(/^\ufeff/, ''), { type: 'string', raw: true });
+      } else {
+        wb = XLSX.read(buf, { type: 'array' });
+      }
       const names = wb.SheetNames;
       const sheets = names.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }));
       const first = sheets[0];
@@ -1445,9 +1478,10 @@ function readTableFile(file) {
       const cols = colOptions(first, hIdx);
       importCfg = {
         sheet: 0, header: hIdx,
-        nameCol: guessCol(cols, /姓名|名字|人员|队员/),
+        nameCol: guessCol(cols, /姓名|名字|人员|队员|选手/),
         resCol: guessCol(cols, /成绩|用时|时间|结果|净计时/),
         sexCol: guessCol(cols, /性别/), colCol: guessCol(cols, /学院|院系|单位/),
+        rankCol: guessCol(cols, /名次|排名|rank/i),
         event: IMPORT_EVENTS[0], date: todayStr(), meet: file.name.replace(/\.[^.]+$/, ''),
       };
       if (importCfg.nameCol < 0) importCfg.nameCol = cols.length > 1 ? 1 : 0;
@@ -1487,10 +1521,13 @@ function renderImport() {
   const body = rows.slice(hIdx + 1).filter(r => r.some(c => c !== '' && c != null));
   const nm = importCfg.nameCol, rs = importCfg.resCol;
 
+  const memberSet = new Set(rosterList().map(m => m.name));
   const prev = body.slice(0, 6).map(r => {
-    const sec = parseSec(r[rs]);
+    const sec = secFromCell(r[rs]);
+    const rn = String(r[nm] == null ? '' : r[nm]).replace(/[（(].*?[)）]/g, '').replace(/\s+/g, '');
     return `<tr><td>${esc(r[nm])}</td><td>${esc(r[rs])}</td>
-      <td class="tm">${sec ? esc(fmtSec(sec)) : '<span style="color:var(--red)">认不出</span>'}</td></tr>`;
+      <td class="tm">${sec ? esc(fmtSec(sec)) : '<span style="color:var(--red)">认不出</span>'}</td>
+      <td>${memberSet.has(rn) ? '<span class="tagbadge green">队员</span>' : '<span class="tagbadge">非队员</span>'}</td></tr>`;
   }).join('');
 
   const selBox = (label, key, allowNone, val) => `
@@ -1502,7 +1539,8 @@ function renderImport() {
   box.innerHTML = `
   <div style="margin-top:16px">
     <div class="tiny" style="margin-bottom:10px">已读取 <b>${esc(pendingFile.name)}</b>，${body.length} 行数据
-      ${pendingFile.sheetNames.length > 1 ? '，共 ' + pendingFile.sheetNames.length + ' 个工作表' : ''}。</div>
+      ${pendingFile.sheetNames.length > 1 ? '，共 ' + pendingFile.sheetNames.length + ' 个工作表' : ''}。<br>
+      不认识的姓名（非本队队员）也可以一起导入：他们<b>只出现在这场比赛的榜上</b>，不会进名册、也不会进个人最好成绩榜。</div>
     <div class="map-grid">
       ${pendingFile.sheetNames.length > 1 ? `<div class="field"><label>工作表</label><select data-map="sheet">
         ${pendingFile.sheetNames.map((s, i) => `<option value="${i}" ${i === si ? 'selected' : ''}>${esc(s)}</option>`).join('')}
@@ -1514,14 +1552,17 @@ function renderImport() {
       ${selBox('成绩列', 'resCol', false, rs)}
       ${selBox('性别列', 'sexCol', true, importCfg.sexCol)}
       ${selBox('学院列', 'colCol', true, importCfg.colCol)}
+      ${selBox('名次列', 'rankCol', true, importCfg.rankCol)}
       <div class="field"><label>项目 / 距离</label><select data-map="event">
         ${IMPORT_EVENTS.map(e => `<option ${e === importCfg.event ? 'selected' : ''}>${esc(e)}</option>`).join('')}
       </select></div>
       <div class="field"><label>日期</label><input data-map="date" value="${esc(importCfg.date)}"></div>
       <div class="field"><label>赛事 / 备注</label><input data-map="meet" value="${esc(importCfg.meet)}"></div>
     </div>
+    <div class="tiny" style="margin-bottom:8px">成绩认得出这些：<b>17:35</b>、1:23:29、18'35"、18.5（分钟），
+      以及 Excel 里存成时间格式的（单元格显示 17:35 但实际是 0.7326）和直接写秒数的（1022 = 17:02）。</div>
     <div class="preview"><table class="tbl" style="min-width:auto">
-      <thead><tr><th class="no-sort">姓名</th><th class="no-sort">原始成绩</th><th class="no-sort">识别为</th></tr></thead>
+      <thead><tr><th class="no-sort">姓名</th><th class="no-sort">原始成绩</th><th class="no-sort">识别为</th><th class="no-sort">是否队员</th></tr></thead>
       <tbody>${prev || '<tr><td colspan="3" class="empty">没有可预览的数据</td></tr>'}</tbody>
     </table></div>
     <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -1537,10 +1578,11 @@ function renderImport() {
       else if (k === 'header') {
         importCfg.header = +v;
         const c2 = colOptions(pendingFile.sheets[importCfg.sheet], importCfg.header);
-        importCfg.nameCol = guessCol(c2, /姓名|名字|人员|队员/);
+        importCfg.nameCol = guessCol(c2, /姓名|名字|人员|队员|选手/);
         importCfg.resCol = guessCol(c2, /成绩|用时|时间|结果|净计时/);
         importCfg.sexCol = guessCol(c2, /性别/);
         importCfg.colCol = guessCol(c2, /学院|院系|单位/);
+        importCfg.rankCol = guessCol(c2, /名次|排名|rank/i);
       } else if (['nameCol', 'resCol', 'sexCol', 'colCol'].includes(k)) importCfg[k] = +v;
       else importCfg[k] = v;
       renderImport();
@@ -1556,10 +1598,12 @@ function doImport() {
   const out = [];
   let bad = 0, noName = 0;
   body.forEach(r => {
-    const name = String(r[importCfg.nameCol] == null ? '' : r[importCfg.nameCol]).trim().replace(/\s/g, '');
-    if (!/^[\u4e00-\u9fa5·]{2,5}$/.test(name)) { noName++; return; }
+    // 姓名：去掉括号备注和空格；2~14 个字符，允许 中文 / 维吾尔名里的「·」/ 拼音或英文名
+    const name = String(r[importCfg.nameCol] == null ? '' : r[importCfg.nameCol])
+      .replace(/[（(].*?[)）]/g, '').replace(/\s+/g, '');
+    if (!/^[\u4e00-\u9fa5·a-zA-Z][\u4e00-\u9fa5·a-zA-Z0-9]{1,13}$/.test(name)) { noName++; return; }
     const raw = r[importCfg.resCol];
-    const sec = parseSec(raw);
+    const sec = secFromCell(raw);
     if (!sec) { bad++; return; }
     let ev = importCfg.event;
     const m = String(raw == null ? '' : raw).match(/[（(]\s*(\d+)\s*k/i);
@@ -1569,15 +1613,19 @@ function doImport() {
       sec: Math.round(sec * 10) / 10, fmt: fmtSec(sec),
       sex: importCfg.sexCol >= 0 ? String(r[importCfg.sexCol] || '') : '',
       college: importCfg.colCol >= 0 ? String(r[importCfg.colCol] || '') : '',
+      rank: importCfg.rankCol >= 0 ? String(r[importCfg.rankCol] == null ? '' : r[importCfg.rankCol]).trim() : '',
       date: importCfg.date, meet: importCfg.meet, ts: Date.now(),
     });
   });
   if (!out.length) return toast('一条都没导入成功，检查一下列对应关系');
+  const memberSet = new Set(rosterList().map(m => m.name));
+  const guests = out.filter(x => !memberSet.has(x.name)).length;
   addMyResults(out);
   pendingFile = null;
   toast('已导入 ' + out.length + ' 条' + (bad ? '，跳过 ' + bad + ' 条成绩认不出的' : '')
-        + (noName ? '，跳过 ' + noName + ' 条没姓名的' : '')
-        + (MODE === 'captain' ? '；点下面「发布并同步到线上」全队才能看到' : ''), 7000);
+        + (noName ? '，跳过 ' + noName + ' 条姓名看不懂的' : '')
+        + (guests ? '。其中 ' + guests + ' 位不在名册（非队员）：只会出现在这场比赛的榜上，不进名册、也不进个人最好成绩榜' : '')
+        + (MODE === 'captain' ? '；点下面「发布并同步到线上」全队才能看到' : ''), 11000);
   state.tab = MODE === 'captain' ? 'upload' : 'board';   // 队长留在本页，才能看到发布按钮
   render();
 }
