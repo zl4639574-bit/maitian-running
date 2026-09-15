@@ -166,7 +166,7 @@ const BASE_PHOTOS = window.TEAM_PHOTOS || { photos: [] };
 
 const EMPTY_OV = { team: {}, honors: null, activities: null, hidden: [], memberEdits: {},
                    newMembers: [], results: [], photos: [], competitions: [], hiddenRecords: [],
-                   hall: null, queue: null, pbAdded: [], pbHidden: [] };
+                   hiddenPhotos: [], hall: null, queue: null, pbAdded: [], pbHidden: [] };
 
 let CLOUD_OV = null;      // 云端 overrides.json（线上生效的修改）
 let LOCAL_OV = MODE === 'captain' ? lsGet(LS_LOCAL, null) : null;   // 队长本机未同步的修改
@@ -199,7 +199,11 @@ function ov() {
       return (c.results || []).concat(l.results || [])
         .filter(r => !hid.has(r.uid || (r.name + '|' + r.sec)));
     })(),
-    photos: (c.photos || []).concat(l.photos || []),
+    photos: (function () {
+      const hid = new Set(effHiddenPhotos(c, l));
+      return (c.photos || []).concat(l.photos || []).filter(p => !hid.has(photoId(p)));
+    })(),
+    hiddenPhotos: effHiddenPhotos(c, l),
     competitions: (c.competitions || []).concat(l.competitions || []),
     compRecords: mergeCompRecords(c.compRecords, l.compRecords),
     pbAdded: (function () {
@@ -212,6 +216,13 @@ function ov() {
     hall: l.hall || c.hall || null,
     queue: l.queue || c.queue || null,
   };
+}
+
+/** 照片墙被移除的照片 = 云端 + 本机记录，减去本机「恢复显示」的（和名册的 hidden/shown 一个套路） */
+function effHiddenPhotos(c, l) {
+  const shown = (l && l.shownPhotos) || [];
+  return Array.from(new Set(((c || {}).hiddenPhotos || []).concat((l || {}).hiddenPhotos || [])))
+    .filter(id => shown.indexOf(id) < 0);
 }
 
 /** 名册修改合并：按人合并，本机的字段覆盖云端，但云端有、本机没写的字段（例如照片）保留下来
@@ -413,7 +424,8 @@ function memberBests(name) {
 
 /** 相册：一个赛事一堆照片 */
 function albums() {
-  const all = (BASE_PHOTOS.photos || []).concat(ov().photos || []);
+  const hid = new Set(ov().hiddenPhotos || []);
+  const all = (BASE_PHOTOS.photos || []).concat(ov().photos || []).filter(p => !hid.has(photoId(p)));
   const map = {};
   all.forEach(p => {
     const key = p.album || '未分类';
@@ -430,6 +442,8 @@ function albums() {
 }
 
 const PHOTO_PREVIEW = {};   // 本次会话里已直传线上的照片（本地先预览，不占 localStorage）
+/** 一张照片的身份 = 文件名（删除/隐藏都按它认，不能用下标，排序后会错位） */
+function photoId(p) { return String((p && (p.file || p.src)) || '').trim(); }
 function photoSrc(p) {
   if (p.data) return p.data;
   if (p.file && PHOTO_PREVIEW[p.file]) return PHOTO_PREVIEW[p.file];
@@ -961,6 +975,9 @@ function renderUpload() {
 
 /* ------------------------------------------------- 渲染：数据管理（队长版） */
 
+let wallList = [];        // 照片墙上正在展示的照片（本次渲染的快照，删按钮按它取下标）
+let removedList = [];     // 已从照片墙移除、可 ↺ 恢复的照片
+
 function renderManage() {
   const o = ov();
   const info = teamInfo();
@@ -982,6 +999,13 @@ function renderManage() {
                ['photos', '照片'], ['results', '自由成绩']];
   const comps = competitions();
   const curComp = comps.find(c => c.id === state.mComp) || comps[0];
+  // 照片墙上「已经有的」和「被删掉（可恢复）的」：原始资料里的 + 已同步上线的 + 本机还没同步的
+  const allPhotosWall = (BASE_PHOTOS.photos || []).concat((CLOUD_OV && CLOUD_OV.photos) || [])
+    .concat((LOCAL_OV && LOCAL_OV.photos) || []);
+  const localPendIds = new Set(((LOCAL_OV && LOCAL_OV.photos) || []).map(photoId));
+  const hiddenIds = o.hiddenPhotos || [];
+  wallList = allPhotosWall.filter(p => hiddenIds.indexOf(photoId(p)) < 0 && !localPendIds.has(photoId(p)));
+  removedList = allPhotosWall.filter(p => hiddenIds.indexOf(photoId(p)) >= 0);
 
   return `
   <div class="sec-head"><h1>数据管理</h1>
@@ -1377,6 +1401,26 @@ function renderManage() {
       <div class="pgrid">${LOCAL_OV.photos.map((p, i) => `
         <div class="pitem"><img src="${photoSrc(p)}">
           <button class="btn danger sm" data-pdel="${i}" style="position:absolute;top:6px;right:6px">删</button></div>`).join('')}
+      </div>
+    </div>` : ''}
+    ${wallList.length ? `
+    <div style="margin-top:22px">
+      <h3>照片墙上的照片（${wallList.length} 张）</h3>
+      <div class="tiny" style="margin:8px 0 12px">点某张右上角的「删」→ 把它从照片墙移除（点「同步我的修改到线上」后线上也会消失）。
+        删错了不要紧：下面「已从照片墙移除」里点 ↺ 就能恢复。</div>
+      <div class="pgrid">${wallList.map((p, i) => `
+        <div class="pitem"><img src="${photoSrc(p)}" loading="lazy" alt="">
+          <button class="btn danger sm" data-phdel="${i}" style="position:absolute;top:6px;right:6px">删</button>
+          <div class="tiny" style="margin-top:4px">${esc(p.album || '')}${p.albumDate ? ' · ' + esc(p.albumDate) : ''}</div></div>`).join('')}
+      </div>
+    </div>` : ''}
+    ${removedList.length ? `
+    <div style="margin-top:22px">
+      <h3>已从照片墙移除（${removedList.length} 张）</h3>
+      <div class="tiny" style="margin:8px 0 12px">这些照片别人看不到（同步后线上也没有）。点 ↺ 恢复显示。</div>
+      <div class="pgrid">${removedList.map((p, i) => `
+        <div class="pitem" style="opacity:.55"><img src="${photoSrc(p)}" loading="lazy" alt="">
+          <button class="btn ghost sm" data-phrestore="${i}" style="position:absolute;top:6px;right:6px">↺ 恢复</button></div>`).join('')}
       </div>
     </div>` : ''}
     ${(CLOUD_OV && (CLOUD_OV.photos || []).length) ? `
@@ -2910,6 +2954,8 @@ function pendingCount() {
   if (l.newMembers && l.newMembers.length) n += l.newMembers.length;
   if (l.results && l.results.length) n += l.results.length;
   if (l.photos && l.photos.length) n += l.photos.length;
+  if (l.hiddenPhotos && l.hiddenPhotos.length) n += l.hiddenPhotos.length;
+  if (l.shownPhotos && l.shownPhotos.length) n += l.shownPhotos.length;
   if (l.competitions && l.competitions.length) n += l.competitions.length;
   if (l.compRecords) n += Object.keys(l.compRecords).reduce((a, k) => a + l.compRecords[k].length, 0);
   if (l.hiddenRecords && l.hiddenRecords.length) n += l.hiddenRecords.length;
@@ -3891,6 +3937,35 @@ function bindManage() {
     l.photos.splice(+b.dataset.pdel, 1);
     saveLocalOv(); render();
   });
+  // 照片墙上的照片：删 = 从照片墙移除（记进 hiddenPhotos，同步后线上也没了；可 ↺ 恢复）
+  $$('[data-phdel]').forEach(b => b.onclick = () => {
+    const p = wallList[+b.dataset.phdel];
+    const id = photoId(p);
+    if (!id) return;
+    if (!confirm('把这张照片从照片墙移除？\n' + (p.album || '') + (p.albumDate ? ' · ' + p.albumDate : '')
+        + '\n\n点「同步我的修改到线上」之后线上也看不到。删错了可以在「已从照片墙移除」里点 ↺ 恢复。')) return;
+    const l = ovLocal();
+    const pend = (l.photos || []).some(x => photoId(x) === id);
+    if (pend) l.photos = (l.photos || []).filter(x => photoId(x) !== id);
+    else l.hiddenPhotos = (l.hiddenPhotos || []).concat([id]);
+    saveLocalOv();
+    toast(pend ? '已从「还没同步的照片」里删掉这张' 
+               : '已从照片墙移除：' + id + ' —— 点「同步我的修改到线上」，线上和展示版就都没了', 12000);
+    render();
+  });
+  $$('[data-phrestore]').forEach(b => b.onclick = () => {
+    const p = removedList[+b.dataset.phrestore];
+    const id = photoId(p);
+    if (!id) return;
+    const l = ovLocal();
+    l.hiddenPhotos = (l.hiddenPhotos || []).filter(x => x !== id);
+    if (effHiddenPhotos(CLOUD_OV || {}, { hiddenPhotos: [] }).indexOf(id) >= 0) {   // 云端也记着删过 → 要显式恢复
+      l.shownPhotos = (l.shownPhotos || []).concat([id]).filter((x, i, a) => a.indexOf(x) === i);
+    }
+    saveLocalOv();
+    toast('已恢复显示：' + id + ' —— 记得点「同步我的修改到线上」', 10000);
+    render();
+  });
 
   const pm = $('#btnPublishMine');
   if (pm) pm.onclick = publishAndSync;          // 自由成绩区：发布 + 同步一步到位
@@ -4335,6 +4410,9 @@ async function pushToGitHub() {
       })(),
       pbHidden: Array.from(new Set((cloud.pbHidden || []).concat(l.pbHidden || []))),
       hiddenRecords: Array.from(new Set((cloud.hiddenRecords || []).concat(l.hiddenRecords || []))),
+      hiddenPhotos: Array.from(new Set((cloud.hiddenPhotos || []).concat(l.hiddenPhotos || [])))
+        .filter(id => ((l.shownPhotos || []).indexOf(id) < 0)),
+      shownPhotos: (l.shownPhotos || []),
       hall: (l.hall || cloud.hall || null),
       queue: null,          // 令牌绝不写进仓库（GitHub 密钥扫描会拦截，也不安全）
       photos: (cloud.photos || []).concat((l.photos || []).map(p => {
