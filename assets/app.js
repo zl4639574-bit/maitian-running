@@ -402,6 +402,7 @@ const TABS = {
   member:  [['home', '总览'], ['board', '成绩榜'], ['roster', '队员名册'], ['upload', '上传成绩'], ['photos', '照片墙'], ['about', '荣誉与资料']],
   captain: [['home', '总览'], ['board', '成绩榜'], ['roster', '队员名册'], ['upload', '上传成绩'],
             ['manage', '数据管理'], ['photos', '照片墙'], ['about', '荣誉与资料']],
+  report:  [['upload', '成绩上报']],          // 队员成绩收集页：只填 + 导出，不需要令牌
 };
 
 /* --------------------------------------------------------------- 渲染：总览 */
@@ -732,11 +733,20 @@ function renderRoster() {
 function renderUpload() {
   const L = myResults().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const rosterNames = new Set(rosterList().map(m => m.name));
+  const rep = MODE === 'report';        // 成绩上报页（队员填 → 导出给队长导入）
   const batch = MODE === 'captain';
 
   return `
-  <div class="sec-head"><h1>上传成绩</h1>
-    <button class="btn ghost sm" data-go="board">看成绩榜 →</button></div>
+  <div class="sec-head"><h1>${rep ? '成绩上报' : '上传成绩'}</h1>
+    ${MODE === 'captain' ? '<button class="btn ghost sm" data-go="board">看成绩榜 →</button>' : ''}</div>
+
+  ${rep ? `<div class="notice" style="margin-bottom:16px">
+    <b>怎么把成绩交给队长（三步）</b><br>
+    ① 下面把这次比赛/测速的成绩一条条填进来（填错可以删了重填）；<br>
+    ② 拉到底点「复制成上报文本」，或者点「导出 CSV」存成一个小文件；<br>
+    ③ 把这段文字（或那个文件）发到队群，或者直接发给队长。<br>
+    <span class="tiny">不用登录、不用密码，填的内容只存在你自己手机里，不会自动上传任何东西。</span>
+  </div>` : ''}
 
   <div class="card sec">
     <h2>① 录入一条成绩</h2>
@@ -779,10 +789,22 @@ function renderUpload() {
     <div id="importArea"></div>
   </div>` : ''}
 
+  ${batch ? `
   <div class="card sec">
-    <div class="sec-head"><h2>${batch ? '③' : '②'} 我录入的成绩</h2>
+    <h2>② 粘贴文本导入（队员上报贴这里）</h2>
+    <div class="tiny" style="margin-bottom:8px">队员在「成绩上报」页复制给你的那几行，直接粘到下面就行：
+      一行一条，<b>姓名,项目,成绩[,日期,赛事/名次]</b>（逗号、制表符都能认；带表头会自动按列名认列）。<br>
+      名字不在名册里的（外校选手、跑团朋友）也能进来，只会出现在这场比赛的榜上。</div>
+    <textarea class="ta" id="pasteBox" rows="5" placeholder="张三,5000米,18:35,2026.09.15,校运会&#10;李四,10公里,42:10"></textarea>
+    <div class="chips" style="margin-top:10px"><button class="btn ghost" id="btnPasteGo">解析并预览</button>
+      <span class="tiny">解析完点「加进来」，再去「数据管理 → 比赛成绩」并进某场比赛</span></div>
+    <div id="pasteArea"></div>
+  </div>` : ''}
+
+  <div class="card sec">
+    <div class="sec-head"><h2>${rep ? '我填的成绩（' + L.length + ' 条）' : (batch ? '③' : '②') + ' 我录入的成绩'}</h2>
       <div class="chips">
-        <button class="btn ghost sm" id="btnCopy" ${L.length ? '' : 'disabled'}>复制成文本</button>
+        <button class="btn ${rep ? '' : 'ghost'} sm" id="btnCopy" ${L.length ? '' : 'disabled'}>${rep ? '复制成上报文本（发队长）' : '复制成文本'}</button>
         <button class="btn ghost sm" id="btnCsv" ${L.length ? '' : 'disabled'}>导出 CSV</button>
         <button class="btn danger sm" id="btnClear" ${L.length ? '' : 'disabled'}>清空</button>
       </div>
@@ -1401,6 +1423,13 @@ function bindUpload() {
     render();
   };
 
+  const pg = $('#btnPasteGo');
+  if (pg) pg.onclick = () => {
+    const ta = $('#pasteBox');
+    pasteRows = pasteParseText(ta ? ta.value : '');
+    renderPasteArea();
+  };
+
   const drop = $('#drop'), fi = $('#fileInput');
   if (drop && fi) {
     drop.onclick = () => fi.click();
@@ -1413,8 +1442,10 @@ function bindUpload() {
   const cp = $('#btnCopy');
   if (cp) cp.onclick = () => {
     const txt = '麦田守望 · 成绩上报（' + todayStr() + '）\n'
-      + myResults().map(r => [r.name, r.event, r.fmt || fmtSec(r.sec), r.date, r.meet || ''].join('\t')).join('\n');
+      + '姓名\t项目\t成绩\t日期\t赛事/名次\n'
+      + myResults().map(r => [r.name, r.event, r.fmt || fmtSec(r.sec), r.date, r.meet || r.rank || ''].join('\t')).join('\n');
     copyText(txt);
+    toast('已复制，直接粘到队群里发给队长即可', 6000);
   };
   const csv = $('#btnCsv');
   if (csv) csv.onclick = () => {
@@ -1628,6 +1659,82 @@ function doImport() {
         + (MODE === 'captain' ? '；点下面「发布并同步到线上」全队才能看到' : ''), 11000);
   state.tab = MODE === 'captain' ? 'upload' : 'board';   // 队长留在本页，才能看到发布按钮
   render();
+}
+
+/* ---------------- 粘贴文本导入（队员上报的文字直接用）---------------- */
+
+let pasteRows = null;
+
+/** 一行一条：姓名,项目,成绩[,日期,赛事/名次]（默认按位置认列，有表头就按表头认） */
+function pasteParseText(txt) {
+  const rows = [], skip = [];
+  const dir = { name: 0, event: 1, res: 2, date: 3, note: 4 };
+  String(txt || '').split(/\r?\n/).forEach((line, i) => {
+    const t = line.trim();
+    if (!t) return;
+    const p = t.split(/[\t,，、]+/).map(x => x.trim());
+    if (/^麦田守望|成绩上报|上报时间/.test(t)) return;              // 忽略上报文本的标题行
+    if (/姓名|名字/.test(p[0] || '')) {                            // 表头行（可能在第一行也可能在后面）
+      p.forEach((h, idx) => {
+        if (/姓名|名字/.test(h)) dir.name = idx;
+        else if (/项目|距离/i.test(h)) dir.event = idx;
+        else if (/成绩|用时|结果|计时/.test(h)) dir.res = idx;
+        else if (/日期/.test(h)) dir.date = idx;
+        else if (/赛事|比赛|名次|备注|地点/.test(h)) dir.note = idx;
+      });
+      return;
+    }
+    const g = k => (dir[k] === undefined ? '' : (p[dir[k]] || '')).trim();
+    const name = g('name').replace(/[（(].*?[)）]/g, '').replace(/\s+/g, '');
+    if (!/^[\u4e00-\u9fa5·a-zA-Z][\u4e00-\u9fa5·a-zA-Z0-9]{1,13}$/.test(name)) { skip.push('第' + (i + 1) + '行姓名看不懂'); return; }
+    const sec = secFromCell(g('res'));
+    if (!sec) { skip.push('第' + (i + 1) + '行成绩「' + g('res') + '」认不出'); return; }
+    const note = g('note');
+    rows.push({
+      uid: newUid(), name: name, event: g('event') || '5000米',
+      sec: Math.round(sec * 10) / 10, fmt: fmtSec(sec),
+      date: g('date') || todayStr(), meet: note, note: note, rank: note, ts: Date.now(),
+    });
+  });
+  const mem = new Set(rosterList().map(m => m.name));
+  rows.forEach(r => { r._guest = !mem.has(r.name); });
+  return { rows: rows, skip: skip, guests: rows.filter(r => r._guest).length };
+}
+
+function renderPasteArea() {
+  const box = $('#pasteArea');
+  if (!box) return;
+  const d = pasteRows || { rows: [], skip: [], guests: 0 };
+  if (!d.rows.length) {
+    box.innerHTML = '<div class="notice" style="margin-top:12px">没解析出可用的行'
+      + (d.skip.length ? '：' + esc(d.skip.slice(0, 3).join('；')) : '')
+      + '。每行至少要有 姓名,项目,成绩。</div>';
+    return;
+  }
+  const guestTxt = d.guests ? '，其中 <b>' + d.guests + '</b> 位不在名册（非队员，只进这场榜）' : '';
+  const skipTxt = d.skip.length ? '；跳过 ' + d.skip.length + ' 条：' + esc(d.skip.slice(0, 3).join('；')) : '';
+  box.innerHTML = `
+    <div class="tiny" style="margin:12px 0 8px">解析出 <b>${d.rows.length}</b> 条${guestTxt}${skipTxt}</div>
+    <div class="tbl-wrap" style="max-height:260px;overflow:auto"><table class="tbl" style="min-width:auto">
+      <thead><tr><th class="no-sort">姓名</th><th class="no-sort">项目</th><th class="no-sort">成绩</th>
+      <th class="no-sort hide-sm">日期</th><th class="no-sort hide-sm">赛事/名次</th></tr></thead>
+      <tbody>${d.rows.slice(0, 60).map(r => `<tr>
+        <td><b>${esc(r.name)}</b>${r._guest ? ' <span class="tagbadge">非队员</span>' : ''}</td>
+        <td class="tiny">${esc(r.event)}</td><td class="tm">${esc(r.fmt)}</td>
+        <td class="tiny hide-sm">${esc(r.date)}</td><td class="tiny hide-sm">${esc(r.meet || '')}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <div class="chips" style="margin-top:12px">
+      <button class="btn" id="btnPasteDo">把这 ${d.rows.length} 条加进来</button>
+      <button class="btn flat sm" id="btnPasteCancel">取消</button>
+    </div>`;
+  const no = $('#btnPasteCancel'), ok = $('#btnPasteDo');
+  if (no) no.onclick = () => { pasteRows = null; render(); };
+  if (ok) ok.onclick = () => {
+    addMyResults(d.rows);
+    pasteRows = null;
+    toast('已加入 ' + d.rows.length + ' 条。接着：数据管理 → 比赛成绩 → 新建一场 → 把本机录入的成绩并进来 → 同步', 11000);
+    render();
+  };
 }
 
 /* --------------------------------------------- 数据管理交互（队长版） */
@@ -3364,6 +3471,8 @@ function startAutoRefresh() {
   if (typeof XLSX === 'undefined' && MODE === 'captain') console.warn('SheetJS 未加载，Excel 导入不可用');
   const h = (location.hash || '').replace('#', '');
   if ((TABS[MODE] || []).some(t => t[0] === h)) state.tab = h;
+  // 这个模式里没有「总览」这类默认页（比如成绩上报页只有一个 tab）→ 落到第一个可用 tab
+  if (!(TABS[MODE] || []).some(t => t[0] === state.tab)) state.tab = (TABS[MODE] || [['home']])[0][0];
   await loadCloud(false);
   await loadQueueCfg();
   if (MODE === 'captain' && loadCfgFromHash()) toast('已用链接里的账号自动填好，可以直接同步', 4000);

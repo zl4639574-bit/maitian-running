@@ -15,6 +15,7 @@ lines = raw.split('\n')
 # ── 网址清单（从说明书【一】里抽 + 补充）──
 URLS = [
     ('展示版（发群里给大家看 · 只读）', 'https://zl4639574-bit.github.io/maitian-running/'),
+    ('成绩上报（发给队员填 · 不用登录）', 'https://zl4639574-bit.github.io/maitian-running/report/'),
     ('队长版（你自己改数据用）', 'https://zl4639574-bit.github.io/maitian-running/captain/'),
     ('说明书（手机也能直接打开）', 'https://zl4639574-bit.github.io/maitian-running/guide.txt'),
     ('给别人用 · 开通步骤（发给新队长看）', 'https://zl4639574-bit.github.io/maitian-running/other-captains.txt'),
@@ -90,6 +91,7 @@ u = u"""# 麦田守望长跑队 · 网址清单
 |---|---|---|
 | **展示版**（给全队/外界看 · 只读） | https://zl4639574-bit.github.io/maitian-running/ | 没人能改（只读） |
 | **队长版**（改数据、传照片、同步上线） | https://zl4639574-bit.github.io/maitian-running/captain/ | 有令牌的队长 |
+| **成绩上报**（发给队员填，不用登录） | https://zl4639574-bit.github.io/maitian-running/report/ | 谁都能填，但只是填给自己看，要交给队长导入 |
 
 ## 说明与帮助
 
