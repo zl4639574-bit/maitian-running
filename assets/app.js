@@ -20,44 +20,84 @@ function esc(s) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function parseSec(v) {
+/** 各项目的合理用时范围（秒）—— 用来把「1:24:00 / 1:24」这类写法读对
+    （半马的 1:24 = 1 小时 24 分，不是 1 分 24 秒；5000 米的 17:02:00 反而是 17 分 02 秒） */
+const SEC_RANGE = [
+  [/800\s*米|0?\.8\s*公里/, 90, 600],        // 1:30–10:00
+  [/1000|1\s*公里/, 120, 900],
+  [/1500/, 180, 1200],                          // 3:00–20:00
+  [/3000|3\s*公里/, 480, 2400],                // 8:00–40:00
+  [/5000|5\s*公里|5K/i, 700, 3300],            // 11:40–55:00
+  [/10000|10\s*公里|10K/i, 1500, 6600],        // 25:00–1:50
+  [/4\s*公里|4000/, 600, 3000],
+  [/12\s*公里|12000/, 1800, 7200],             // 30:00–2:00
+  [/16\s*公里|16000/, 2400, 9600],             // 40:00–2:40
+  [/半马|半程|21\.0975/, 3300, 14400],         // 55:00–4:00
+  [/全马|全程|42\.195/, 7200, 27000],          // 2:00–7:30
+];
+function secRange(ev) {
+  const s = String(ev == null ? '' : ev);
+  for (let i = 0; i < SEC_RANGE.length; i++) if (SEC_RANGE[i][0].test(s)) return [SEC_RANGE[i][1], SEC_RANGE[i][2]];
+  return [20, 36000];                    // 不知道项目：只排除明显不合理的值
+}
+
+/** 从几个候选读数里挑最合理的：按候选顺序取第一个落在合理范围内的；
+    都不在范围内就取离范围最近的（宁可保住数值，也不乱丢） */
+function pickSec(cands, ev) {
+  const r = secRange(ev);
+  const good = (cands || []).filter(c => typeof c === 'number' && isFinite(c) && c > 0);
+  if (!good.length) return null;
+  for (let i = 0; i < good.length; i++) if (good[i] >= r[0] && good[i] <= r[1]) return good[i];
+  const d = c => (c < r[0] ? Math.log(r[0] / c) : Math.log(c / r[1]));
+  return good.slice().sort((a, b) => d(a) - d(b))[0];
+}
+
+/** 成绩 → 秒。第二个参数是「项目/距离」，给了才能把 1:24:00 这种写法读对（半马 = 1 小时 24 分）
+    支持：17:35 / 1:23:29 / 18'35" / 18.5（分钟）/ Excel 时间格式（0.0583 = 1:24:00）/ 直接写秒数 */
+function parseSec(v, ev) {
   if (v === null || v === undefined || v === '') return null;
   if (v instanceof Date) {
-    if (v.getFullYear() <= 1900) return v.getHours() * 60 + v.getMinutes() + v.getSeconds() / 60;
-    return null;
+    if (v.getFullYear() > 1900) return null;
+    const h = v.getHours(), m = v.getMinutes(), s = v.getSeconds();
+    return pickSec([h * 3600 + m * 60 + s, h * 60 + m + s / 60], ev);   // 真·时:分:秒 / 分钟塞在小时槽
   }
   if (typeof v === 'number') {
     if (v > 0 && v < 1) {
       const t = v * 86400, h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = Math.round(t % 60);
-      return h * 60 + m + s / 60;
+      return pickSec([h * 3600 + m * 60 + s, h * 60 + m + s / 60], ev);
     }
-    return v < 60 ? v * 60 : v;
+    return pickSec([v, v * 60], ev);      // 写秒数 / 写分钟
   }
   let s = String(v).trim()
-    .replace(/[’‘′]/g, "'").replace(/[”“″]/g, '"').replace(/：/g, ':').replace(/\s/g, '');
+    .replace(/[\u2019\u2018\u2032]/g, "'").replace(/[\u201d\u201c\u2033]/g, '"').replace(/\uff1a/g, ':').replace(/\s/g, '');
   if (!s) return null;
   if (/dns|dnf|缺|误|请假|未参加|无成绩|退赛/i.test(s)) return null;
-  s = s.replace(/[（(][^)）]*[)）]/g, '').trim();
+  s = s.replace(/[\uff08(][^)\uff09]*[)\uff09]/g, '').trim();
   if (s.indexOf("'") >= 0 || s.indexOf('"') >= 0) {
     const p = s.split(/['"]/).filter(x => x !== '').map(Number);
     if (p.some(isNaN)) return null;
-    if (p.length === 1) return p[0];
-    if (p.length === 2) return p[0] * 60 + p[1];
+    if (p.length === 1) return pickSec([p[0], p[0] * 60], ev);
+    if (p.length === 2) return pickSec([p[0] * 60 + p[1], p[0] * 3600 + p[1] * 60], ev);   // 18'35" 传统读作 分'秒"
     return null;
   }
   if (s.indexOf(':') >= 0) {
     const p = s.split(':').filter(x => x !== '').map(Number);
     if (p.some(isNaN)) return null;
     if (p.length === 3) {
-      if (p[2] === 0 && p[0] < 60 && p[1] < 60) return p[0] * 60 + p[1];
-      return p[0] * 3600 + p[1] * 60 + p[2];
+      // 两种读法：时:分:秒（半马 1:24:00 = 1 小时 24 分）/ 小时槽其实是分钟（5000 米 17:02:00 = 17 分 02 秒）
+      return pickSec([p[0] * 3600 + p[1] * 60 + p[2], p[2] === 0 ? p[0] * 60 + p[1] : null], ev);
     }
-    if (p.length === 2) return p[0] * 60 + p[1];
+    if (p.length === 2) {
+      // 分:秒；长距离时按 时:分。另外「1:23.29」这种拿点号当第二道冒号的写法（时:分.秒）也认
+      const dotSec = (p[1] % 1 !== 0 && String(p[1]).split('.')[1].length <= 2)
+        ? p[0] * 3600 + Math.floor(p[1]) * 60 + Math.round((p[1] % 1) * 100) : null;
+      return pickSec([p[0] * 60 + p[1], dotSec, p[0] * 3600 + p[1] * 60], ev);
+    }
     return null;
   }
   const f = parseFloat(s);
   if (isNaN(f) || f <= 0) return null;
-  return f < 60 ? f * 60 : f;
+  return pickSec([f, f * 60], ev);
 }
 
 function fmtSec(sec) {
@@ -67,6 +107,15 @@ function fmtSec(sec) {
   const p2 = n => (n < 10 ? '0' + n : '' + n);
   return h >= 1 ? h + ':' + p2(m) + ':' + p2(s) : m + ':' + p2(s);
 }
+
+/** 这个成绩对该项目来说"不太像"吗？→ 返回一句提醒（没有就返回空串）。只提醒，不改存进去的值 */
+function secSuspicion(sec, ev) {
+  if (!sec || !ev) return '';
+  const r = secRange(ev);
+  if (sec >= r[0] && sec <= r[1]) return '';
+  return '⚠️ 「' + ev + '」读成 ' + fmtSec(sec) + ' 不太常见，核对一下（想写 1 小时 24 分就写 1:24:00）';
+}
+
 
 function distM(ev) {
   const s = String(ev || '');
@@ -872,7 +921,8 @@ function renderUpload() {
         <datalist id="evList">${['1500米', '3000米', '5000米', '10000米', '4公里', '12公里', '16公里', '半马', '全马']
           .map(e => `<option value="${e}">`).join('')}</datalist>
       </div>
-      <div class="field"><label>成绩 * （净计时；分:秒 或 时:分:秒）</label><input id="f_result" placeholder="18:35 / 1:23:22"></div>
+      <div class="field"><label>成绩 * （净计时；分:秒 或 时:分:秒）</label><input id="f_result" placeholder="18:35 / 1:23:22">
+        <div class="tiny" id="f_resultHint" style="margin-top:4px"></div></div>
       <div class="field"><label>日期</label><input id="f_date" value="${todayStr()}"></div>
       <div class="field"><label>性别</label><select id="f_sex"><option value="">未填</option><option>男</option><option>女</option></select></div>
       <div class="field"><label>学院</label><input id="f_college" placeholder="例如 林学院"></div>
@@ -1622,6 +1672,20 @@ function bindUpload() {
     box.textContent = nameKnownToTeam(v) ? ''
       : '⚠️ 名册里没有这个名字 —— 核对一下别写错字（写错队长那边会当成另一个人；跑团朋友、外校同学可以不管）';
   };
+  // 成绩栏：边打边告诉你"识别成多少"，以及这个成绩对该项目是不是不太像（写 1:24:00 = 1 小时 24 分）
+  const fres = $('#f_result'), fhint = $('#f_resultHint');
+  const updResHint = () => {
+    if (!fres || !fhint) return;
+    const raw = String(fres.value || '').trim();
+    const ev2 = ($('#f_event').value || '').trim();
+    if (!raw) { fhint.textContent = ''; return; }
+    const sec = parseSec(raw, ev2);
+    if (!sec) { fhint.textContent = '⚠️ 认不出这个写法，试试 18:35 或 1:24:00'; return; }
+    fhint.textContent = secSuspicion(sec, ev2) || ('识别为 ' + fmtSec(sec) + (ev2 ? '（' + ev2 + '）' : ''));
+  };
+  if (fres) fres.oninput = updResHint;
+  const fev = $('#f_event');
+  if (fev) fev.oninput = updResHint;
   const add = $('#btnAdd');
   if (add) add.onclick = () => {
     const name = ($('#f_name').value || '').trim();
@@ -1629,7 +1693,7 @@ function bindUpload() {
     const raw = ($('#f_result').value || '').trim();
     if (!name) return toast('请填姓名');
     if (!ev) return toast('请填项目 / 距离');
-    const sec = parseSec(raw);
+    const sec = parseSec(raw, ev);
     if (!sec) return toast('成绩没看懂，试试 18:35 或 1:23:22');
     addMyResults([{
       uid: newUid(), name, event: ev, raw, sec: Math.round(sec * 10) / 10, fmt: fmtSec(sec),
@@ -1750,16 +1814,23 @@ function bindUpload() {
 /* -------- 批量导入（队长版，手机上也能用） -------- */
 
 /** 成绩单元格 → 秒。支持：17:35 / 1:23:29 / 18'35" / 18.5（分钟）
-    / Excel 里存成时间格式（显示 17:35，实际值 0.7326）/ 直接是秒数（1022 = 17:02） */
-function secFromCell(v) {
+    / Excel 里存成时间格式（显示 17:35，实际值 0.7326）/ 直接是秒数（1022 = 17:02）
+    第二个参数是「项目/距离」：给了才能把 1:24:00 读成 1 小时 24 分（半马）而不是 1 分 24 秒 */
+function secFromCell(v, ev) {
   const t = String(v == null ? '' : v).trim();
   if (t === '') return 0;
   if (/^\d+(\.\d+)?$/.test(t)) {
     const n = parseFloat(t);
-    if (n > 0 && n < 1) return Math.round(n * 86400);   // Excel 时间格式（一天的比例）
-    if (n >= 60 && n <= 86400) return Math.round(n);    // 直接写秒数
+    if (n > 0 && n < 1) {                                              // Excel 时间格式（一天的比例）
+      const t2 = n * 86400, h = Math.floor(t2 / 3600), m = Math.floor((t2 % 3600) / 60), s2 = Math.round(t2 % 60);
+      return Math.round(pickSec([t2, h * 60 + m + s2 / 60], ev));
+    }
+    if (n >= 60 && n <= 86400) {
+      const sec = pickSec([n, n * 60], ev);                            // 直接写秒数 / 写分钟
+      return Math.round(sec === null ? n : sec);
+    }
   }
-  return parseSec(v);
+  return parseSec(v, ev);
 }
 
 function readTableFile(file) {
@@ -1834,7 +1905,7 @@ function renderImport() {
 
   const memberSet = new Set(rosterList().map(m => m.name));
   const prev = body.slice(0, 6).map(r => {
-    const sec = secFromCell(r[rs]);
+    const sec = secFromCell(r[rs], importCfg.event);
     const rn = String(r[nm] == null ? '' : r[nm]).replace(/[（(].*?[)）]/g, '').replace(/\s+/g, '');
     return `<tr><td>${esc(r[nm])}</td><td>${esc(r[rs])}</td>
       <td class="tm">${sec ? esc(fmtSec(sec)) : '<span style="color:var(--red)">认不出</span>'}</td>
@@ -1914,7 +1985,7 @@ function doImport() {
       .replace(/[（(].*?[)）]/g, '').replace(/\s+/g, '');
     if (!/^[\u4e00-\u9fa5·a-zA-Z][\u4e00-\u9fa5·a-zA-Z0-9]{1,13}$/.test(name)) { noName++; return; }
     const raw = r[importCfg.resCol];
-    const sec = secFromCell(raw);
+    const sec = secFromCell(raw, importCfg.event);
     if (!sec) { bad++; return; }
     let ev = importCfg.event;
     const m = String(raw == null ? '' : raw).match(/[（(]\s*(\d+)\s*k/i);
@@ -2314,7 +2385,7 @@ function pasteParseText(txt) {
     const g = k => (dir[k] === undefined ? '' : (p[dir[k]] || '')).trim();
     const name = g('name').replace(/[（(].*?[)）]/g, '').replace(/\s+/g, '');
     if (!/^[\u4e00-\u9fa5·a-zA-Z][\u4e00-\u9fa5·a-zA-Z0-9]{1,13}$/.test(name)) { skip.push('第' + (i + 1) + '行姓名看不懂'); return; }
-    const sec = secFromCell(g('res'));
+    const sec = secFromCell(g('res'), g('event'));
     if (!sec) { skip.push('第' + (i + 1) + '行成绩「' + g('res') + '」认不出'); return; }
     const note = g('note');
     rows.push({
@@ -2437,7 +2508,7 @@ async function acceptInbox(i) {
   } else {
     const rows = (it.data.rows || []).map(r => ({
       uid: newUid(), name: r.name, event: r.event || '5000米',
-      sec: r.sec || secFromCell(r.fmt) || 0, fmt: r.fmt || fmtSec(r.sec || 0),
+      sec: r.sec || secFromCell(r.fmt, r.event) || 0, fmt: r.fmt || fmtSec(r.sec || 0),
       date: r.date || it.data.date || '', meet: r.meet || '', rank: r.rank || '', ts: Date.now(),
     })).filter(r => r.name && r.sec);
     addMyResults(rows);
@@ -2564,7 +2635,7 @@ async function applyMemberDoc(doc) {
   ME_PB.forEach(ev => {
     const v = String(pbs[ev] || '').trim();
     if (!v || v === '无' || v === '-') return;
-    const sec = secFromCell(v);
+    const sec = secFromCell(v, ev);
     if (!sec) return;
     add.push({ uid: newUid(), name: doc.name, event: ev, sec: Math.round(sec * 10) / 10,
       fmt: fmtSec(sec), date: '', meet: '队员自报', rank: '', ts: Date.now(),
@@ -3188,7 +3259,7 @@ function buildFixPlan(sheets) {
       const name = g(iN).replace(/\s/g, '');
       if (!name) return;
       const key = g(iK), ev = g(iE), rawRes = g(iR), date = g(iD), src = g(iSrc), note = g(iNote);
-      const sec = Number(row[iSec]) > 0 ? Number(row[iSec]) : parseSec(rawRes);
+      const sec = Number(row[iSec]) > 0 ? Number(row[iSec]) : parseSec(rawRes, ev);
       const isDel = !rawRes || /删除|删掉|delete|×/i.test(rawRes);
 
       if (key.indexOf('comp:') === 0) {
@@ -3399,7 +3470,7 @@ function pbParseText(txt) {
     const p = t.split(/[\t,，、]+/).map(x => x.trim());
     if (/姓名|名字/.test(p[0] || '')) return;                       // 表头跳过
     if (!p[0] || !p[1] || !p[2]) { skip.push('第' + (i + 1) + '行少列（要 姓名,项目,成绩）'); return; }
-    const sec = parseSec(p[2]);
+    const sec = parseSec(p[2], p[1]);
     if (!sec) { skip.push('第' + (i + 1) + '行「' + p[2] + '」认不出成绩'); return; }
     rows.push({ uid: pbUid(), name: p[0], event: p[1], sec: sec, fmt: fmtSec(sec),
                 date: p[3] || '', note: p[4] || '' });
@@ -3693,7 +3764,7 @@ function bindManage() {
   if (addPb) addPb.onclick = () => {
     const name = ($('#pb_name').value || '').trim().replace(/\s/g, '');
     const event = ($('#pb_event').value || '').trim();
-    const sec = parseSec(($('#pb_time').value || '').trim());
+    const sec = parseSec(($('#pb_time').value || '').trim(), event);
     if (!name) return toast('请填姓名');
     if (!event) return toast('请填项目（例如 半马 / 5000米 / 全马）');
     if (!sec) return toast('成绩认不出：可写 1:23:29（时:分:秒）或 17:02（分:秒）', 8000);
@@ -3936,7 +4007,7 @@ function bindManage() {
     const ev = ($('#cr_event').value || '').trim();
     const raw = ($('#cr_res').value || '').trim();
     if (!name) return toast('请填姓名');
-    const sec = parseSec(raw);
+    const sec = parseSec(raw, ev);
     if (!sec) return toast('成绩没看懂');
     addCompRecords(cur.id, [{
       name, event: ev, raw, sec: Math.round(sec * 10) / 10, fmt: fmtSec(sec),
