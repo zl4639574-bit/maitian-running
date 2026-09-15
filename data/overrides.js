@@ -565,6 +565,16 @@ window.TEAM_OVERRIDES = {
    "college": "林学院",
    "major": "智慧林业2301",
    "grade": "2023"
+  },
+  "姚语熙": {
+   "level": [
+    "正式"
+   ],
+   "sex": "女",
+   "college": "生命科学学院",
+   "major": "生物拔尖基地班2501",
+   "grade": "2025",
+   "photo": "images/avatars/mdu7ja.jpg"
   }
  },
  "newMembers": [],
@@ -997,6 +1007,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789483038769,
    "sex": "男",
    "college": "园艺学院"
+  },
+  {
+   "uid": "rmu2s1vzw_8_e88y",
+   "name": "姚语熙",
+   "event": "800米",
+   "sec": 168,
+   "fmt": "2:48",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789483129916,
+   "sex": "女",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu2s1vzw_9_3ljs",
+   "name": "姚语熙",
+   "event": "1500米",
+   "sec": 317,
+   "fmt": "5:17",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789483129916,
+   "sex": "女",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu2s1vzw_10_66sv",
+   "name": "姚语熙",
+   "event": "3000米",
+   "sec": 670,
+   "fmt": "11:10",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789483129916,
+   "sex": "女",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu2s1vzw_11_ixwu",
+   "name": "姚语熙",
+   "event": "5000米",
+   "sec": 1214,
+   "fmt": "20:14",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789483129916,
+   "sex": "女",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu2s1vzw_12_6rlr",
+   "name": "姚语熙",
+   "event": "10000米",
+   "sec": 2635,
+   "fmt": "43:55",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789483129916,
+   "sex": "女",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu2s1vzw_13_xh75",
+   "name": "姚语熙",
+   "event": "半马",
+   "sec": 6467,
+   "fmt": "1:47:47",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789483129916,
+   "sex": "女",
+   "college": "生命科学学院"
   }
  ],
  "pbHidden": [
@@ -1177,5 +1265,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T14:37:34.758Z"
+ "updated": "2026-09-15T14:38:57.354Z"
 };
