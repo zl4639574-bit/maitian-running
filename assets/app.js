@@ -824,7 +824,7 @@ function renderUpload() {
 
   ${batch ? `
   <div class="card sec">
-    <h2>② 粘贴文本导入（队员上报贴这里）</h2>
+    <h2>② 接收上报（成绩 / 资料都能贴）</h2>
     <div class="tiny" style="margin-bottom:8px">队员在「成绩上报」页复制给你的那几行，直接粘到下面就行：
       一行一条，<b>姓名,项目,成绩[,日期,赛事/名次]</b>（逗号、制表符都能认；带表头会自动按列名认列）。<br>
       名字不在名册里的（外校选手、跑团朋友）也能进来，只会出现在这场比赛的榜上。</div>
@@ -832,12 +832,14 @@ function renderUpload() {
     <div class="chips" style="margin-top:10px"><button class="btn ghost" id="btnPasteGo">解析并预览</button>
       <span class="tiny">解析完点「加进来」，再去「数据管理 → 比赛成绩」并进某场比赛</span></div>
     <div id="pasteArea"></div>
+    <div id="docAreaTop"></div>   <!-- 收到队员资料时在这里预览 -->
   </div>` : ''}
 
   <div class="card sec">
     <div class="sec-head"><h2>${rep ? '我填的成绩（' + L.length + ' 条）' : (batch ? '③' : '②') + ' 我录入的成绩'}</h2>
       <div class="chips">
-        <button class="btn ${rep ? '' : 'ghost'} sm" id="btnCopy" ${L.length ? '' : 'disabled'}>${rep ? '复制成上报文本（发队长）' : '复制成文本'}</button>
+        ${rep ? `<button class="btn sm" id="btnShare" ${L.length ? '' : 'disabled'}>📤 直接发给队长</button>` : ''}
+        <button class="btn ${rep ? 'ghost' : ''} sm" id="btnCopy" ${L.length ? '' : 'disabled'}>${rep ? '复制成上报文本（发队长）' : '复制成文本'}</button>
         <button class="btn ghost sm" id="btnCsv" ${L.length ? '' : 'disabled'}>导出 CSV</button>
         <button class="btn danger sm" id="btnClear" ${L.length ? '' : 'disabled'}>清空</button>
       </div>
@@ -1469,7 +1471,19 @@ function bindUpload() {
   const pg = $('#btnPasteGo');
   if (pg) pg.onclick = () => {
     const ta = $('#pasteBox');
-    pasteRows = pasteParseText(ta ? ta.value : '');
+    const txt = ta ? ta.value : '';
+    // 自动识别：队员资料（含「姓名」字段且带各项距离/教育信息）还是成绩上报
+    const isDoc = /^\s*\{/.test(txt) && /maitian-member/.test(txt)
+      || /队员资料|性别\s*[\t:：]|学院\s*[\t:：]|(800米|1500米|半马|全马)\s*[\t:：]/.test(txt);
+    if (isDoc) {
+      const doc = parseMemberDoc(txt);
+      if (!doc) return toast('像是队员资料，但没解析出姓名，检查一下内容');
+      memberDocQueue = { doc: doc };
+      toast('识别为「队员资料」，确认下面这份就点导入', 6000);
+      renderMemberDocPreview();
+      return;
+    }
+    pasteRows = pasteParseText(txt);
     renderPasteArea();
   };
 
@@ -1501,6 +1515,20 @@ function bindUpload() {
     } else {
       h.innerHTML = '🆕 这是新赛事名（队长那边会新建/合并这一场）';
     }
+  };
+
+  const sh = $('#btnShare');
+  if (sh) sh.onclick = async () => {
+    const lines = ['麦田守望 · 成绩上报（' + todayStr() + '）',
+      '姓名\t项目\t成绩\t日期\t赛事/名次']
+      .concat(myResults().map(r => [r.name, r.event, r.fmt || fmtSec(r.sec), r.date, r.meet || r.rank || ''].join('\t')));
+    const txt = lines.join('\n');
+    const json = JSON.stringify({ type: 'maitian-scores', date: todayStr(),
+      rows: myResults().map(r => ({ name: r.name, event: r.event, fmt: r.fmt || fmtSec(r.sec),
+        sec: r.sec, date: r.date, meet: r.meet || '', rank: r.rank || '' })) }, null, 1);
+    const r = await shareToCaptain({ text: txt, json: json, fname: '麦田守望_成绩上报_' + todayStr() + '.json',
+      tip: '麦田守望 成绩上报（' + myResults().length + ' 条），请队长导入' });
+    shareToast(r, '成绩');
   };
 
   const cp = $('#btnCopy');
@@ -1725,6 +1753,37 @@ function doImport() {
   render();
 }
 
+/** 一键发给队长：手机原生分享面板（能带文件），不行再退回复制
+    返回 'share-file' | 'share-text' | 'copy' | 'cancel' */
+async function shareToCaptain(o) {
+  const text = o.text || '';
+  try {
+    if (o.json && o.fname && navigator.canShare) {
+      const f = new File([o.json], o.fname, { type: 'application/json' });
+      if (navigator.canShare({ files: [f] })) {
+        await navigator.share({ files: [f], title: '麦田守望 · 上报', text: o.tip || '队里上报，请队长导入' });
+        return 'share-file';
+      }
+    }
+    if (navigator.share) {
+      await navigator.share({ title: '麦田守望 · 上报', text: text });
+      return 'share-text';
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return 'cancel';
+  }
+  copyText(text);
+  return 'copy';
+}
+
+/** 统一的分享结果提示 */
+function shareToast(r, what) {
+  if (r === 'share-file') toast('已打开分享面板：选微信 → 发给队长就行（' + what + '已经打包好）', 8000);
+  else if (r === 'share-text') toast('已打开分享面板：选微信 → 发给队长就行', 8000);
+  else if (r === 'cancel') toast('已取消（数据还在本机，随时可以再发）');
+  else toast('这个浏览器不支持直接分享，已经帮你复制好了：粘给队长即可', 8000);
+}
+
 /* ---------------- 队员「完善我的资料」收集页 ---------------- */
 
 const ME_PB = ['800米', '1500米', '3000米', '5000米', '10000米', '半马', '全马'];
@@ -1805,6 +1864,7 @@ function renderMe() {
 
     <div class="chips" style="margin-top:20px">
       <button class="btn" id="meSave">保存资料</button>
+      <button class="btn" id="meShare" ${d.name ? '' : 'disabled'}>📤 直接发给队长</button>
       <button class="btn ghost" id="meCopy" ${d.name ? '' : 'disabled'}>复制资料文本</button>
       <button class="btn ghost" id="meExport" ${d.name ? '' : 'disabled'}>导出资料文件（含照片）</button>
     </div>
@@ -1833,6 +1893,16 @@ function bindMe() {
   });
   const sv = $('#meSave');
   if (sv) sv.onclick = () => { const d = save(); toast('已保存到本机：' + (d.name || '（还没填姓名）'), 5000); render(); };
+  const sh2 = $('#meShare');
+  if (sh2) sh2.onclick = async () => {
+    const d2 = save();
+    const n = String(d2.pb && (d2.pb['5000米'] || d2.pb['3000米'] || '') || '').trim();
+    const r = await shareToCaptain({ text: meText(d2),
+      json: JSON.stringify(d2, null, 1), fname: '麦田守望_我的资料_' + (d2.name || '未填') + '.json',
+      tip: '麦田守望 队员资料：' + (d2.name || '') + (n ? '（5000米 ' + n + '）' : '') + '，请队长导入' });
+    shareToast(r, '资料' + (d2.photo ? '和照片' : ''));
+  };
+
   const cp = $('#meCopy');
   if (cp) cp.onclick = () => { copyText(meText(save())); toast('资料文本已复制，粘给队长即可', 6000); };
   const ex = $('#meExport');
@@ -2117,7 +2187,7 @@ async function applyMemberDoc(doc) {
 }
 
 function renderMemberDocPreview() {
-  const box = $('#docArea');
+  const box = $('#docAreaTop') || $('#docArea');   // 上传页 / 名册页各有一个位置
   if (!box) return;
   const d = memberDocQueue;
   if (!d) { box.innerHTML = ''; return; }
