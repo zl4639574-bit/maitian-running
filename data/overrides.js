@@ -482,7 +482,8 @@ window.TEAM_OVERRIDES = {
    "level": [
     "正式"
    ],
-   "sex": "男"
+   "sex": "男",
+   "photo": "images/avatars/mflizq.jpg"
   },
   "阿巴小洛": {
    "college": "林学院",
@@ -1066,5 +1067,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T12:49:41.471Z"
+ "updated": "2026-09-15T12:57:42.444Z"
 };
