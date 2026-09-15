@@ -53,12 +53,20 @@ def main():
   const good = (document.getElementById('f_nameHint') || {}).textContent || '';
   fn.value = '不存在的名字'; fn.dispatchEvent(new Event('input')); await w(100);
   const bad = (document.getElementById('f_nameHint') || {}).textContent || '';
+  // 完善我的资料 页签里的「身份」三档
+  for (const n of document.querySelectorAll('.nav-item,[data-tab]'))
+    if ((n.textContent||'').trim() === '完善我的资料') { n.click(); break; }
+  await w(1200);
+  const sel = document.getElementById('me_level');
+  const opts = sel ? Array.from(sel.options).map(o => o.value) : [];
   return { hasList: !!(fn && fn.getAttribute('list')), ac: fn.getAttribute('autocomplete'),
-           datalists: dl, goodHintEmpty: good.trim() === '', badHint: bad.trim().slice(0, 30) };
+           datalists: dl, goodHintEmpty: good.trim() === '', badHint: bad.trim().slice(0, 30),
+           levelOpts: opts };
 })()""")
         print("   " + json.dumps(r, ensure_ascii=False))
         ok_page = (r["hasList"] is False and r["ac"] == "off" and "nameList" not in r["datalists"]
-                   and r["goodHintEmpty"] and r["badHint"].startswith("⚠️"))
+                   and r["goodHintEmpty"] and r["badHint"].startswith("⚠️")
+                   and r["levelOpts"] == ["", "正式", "预备", "普通"])
         if shot:
             r2 = c.send("Page.captureScreenshot", format="png", captureBeyondViewport=False)
             io.open(shot, "wb").write(base64.b64decode(r2["data"]))
