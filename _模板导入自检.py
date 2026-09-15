@@ -12,9 +12,9 @@ spec = importlib.util.spec_from_file_location("ph", os.path.join(HERE, "手机�
 ph = importlib.util.module_from_spec(spec); spec.loader.exec_module(ph)
 
 ROWS = {
-    '01': (['姓名', '性别', '学院', '专业', '年级', '800米', '1500米', '3000米', '5000米', '10000米', '半马', '全马'],
-           [['测试甲', '男', '林学院', '林学2101', '2023', '无', '无', '10:20', '18:35', '无', '无', '无'],
-            ['测试乙', '女', '园艺学院', '园艺2102', '2023', '2:50', '无', '无', '23:10', '无', '无', '无']]),
+    '01': (['姓名', '性别', '学院', '专业', '年级', '身份', '800米', '1500米', '3000米', '5000米', '10000米', '半马', '全马'],
+           [['测试甲', '男', '林学院', '林学2101', '2023', '正式', '无', '无', '10:20', '18:35', '无', '无', '无'],
+            ['测试乙', '女', '园艺学院', '园艺2102', '2023', '普通', '2:50', '无', '无', '23:10', '无', '无', '无']]),
     '02': (['姓名', '性别', '学院', '成绩', '名次'],
            [['测试甲', '男', '林学院', '18:35', '1'], ['测试乙', '女', '园艺学院', '23:10', '2']]),
     '03': (['姓名', '学院', '专业', '年级', '性别', '身份'],
@@ -118,17 +118,20 @@ def main():
   const box = document.getElementById('docSheetArea');
   const t = box ? box.textContent.replace(/\s+/g,' ') : '';
   const m = t.match(/读到\s*(\d+)\s*个人/);
-  return { n: m ? +m[1] : null, hasPb: t.indexOf('5000米 18:35') >= 0, head: t.slice(0, 170) };
+  return { n: m ? +m[1] : null, hasPb: t.indexOf('5000米 18:35') >= 0, hasLv: t.indexOf('正式') >= 0 && t.indexOf('普通') >= 0, head: t.slice(0, 200) };
 })()""")
         # 点「全部导入」，看有没有落进本机草稿
         c.js("(function(){const b=document.getElementById('btnSheetDo'); if(b)b.click(); return 1;})()")
         time.sleep(2.5)
         r2b = c.js("""(function(){const d=JSON.parse(localStorage.getItem('mt_ov_local_v1')||'{}');
-  return { edited: Object.keys(d.memberEdits||{}), pb: (d.pbAdded||[]).map(p=>p.name+' '+p.event+' '+p.fmt) };})()""")
+  return { edited: Object.keys(d.memberEdits||{}), pb: (d.pbAdded||[]).map(p=>p.name+' '+p.event+' '+p.fmt),
+           nm: (d.newMembers||[]).map(m=>m.name+'='+(m.level||[]).join('/')) };})()""")
         print("② 队员名册←01收集表：", json.dumps(dict(r2, **{"落库": r2b}), ensure_ascii=False))
-        ok_b = (ok_b1 and r2["n"] == 2 and r2["hasPb"]
-                and set(r2b["edited"]) == {"测试甲", "测试乙"} and len(r2b["pb"]) == 4)   # 甲2条(3000/5000) + 乙2条(800/5000)
-        res.append(("② 01_队员资料收集表 能被「导入收集表」识别并落库（2 人、2 条成绩）", ok_b))
+        lvMap = dict(x.split('=') for x in r2b["nm"])
+        ok_b = (ok_b1 and r2["n"] == 2 and r2["hasPb"] and r2["hasLv"]
+                and set(r2b["edited"]) == {"测试甲", "测试乙"} and len(r2b["pb"]) == 4    # 甲2条(3000/5000) + 乙2条(800/5000)
+                and lvMap.get("测试甲") == "正式" and lvMap.get("测试乙") == "普通")      # 表里写的身份要照做
+        res.append(("② 01_队员资料收集表 能被「导入收集表」识别并落库（2 人、2 条成绩、身份照表里的算）", ok_b))
 
         # ③ 名册模板 → 批量添加队员
         c.js("localStorage.removeItem('mt_ov_local_v1'); 'ok'")

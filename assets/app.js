@@ -313,6 +313,18 @@ function rosterList() {
   return fromBase.concat(added);
 }
 
+/** 身份的三档：正式 / 预备 会进公开名册；普通 = 队里的人但不进公开名册（和原始名册里的「队员」同义） */
+const LEVELS = ['正式', '预备', '普通'];
+
+/** 「身份」文本 → 数组；空/看不懂 → null（= 别动这一项）
+    注意：返回 [] 表示"明确写成空"（数据表的「留空 = 不进公开名册」），跟 null 不是一回事 */
+function normLevelOf(v) {
+  const t = String(v == null ? '' : v).trim();
+  if (!t || t === '未填' || t === '未分级' || t === '-' || t === '无' || t === '否' || t === '0') return [];
+  const hit = t.split(/[,，、+\/·\s]+/).map(x => x.trim()).filter(x => LEVELS.indexOf(x) >= 0);
+  return hit.length ? hit : null;
+}
+
 /** 这个人在不在公开名册里？在原始名册里的身份是什么？（给"导入后名册没反应"配准确提示）
     返回 { inRoster 在公开名册里, inBase 原始名册里有记录, baseLevel 原始身份, isNew 队长新增的 } */
 function rosterStatus(name) {
@@ -1979,7 +1991,8 @@ function meText(d) {
     '性别\t' + (d.sex || ''),
     '学院\t' + (d.college || ''),
     '专业\t' + (d.major || ''),
-    '年级\t' + (d.grade || '')];
+    '年级\t' + (d.grade || ''),
+    '身份\t' + (Array.isArray(d.level) ? d.level.join('/') : (d.level || ''))];
   ME_PB.forEach(ev => { lines.push(ev + '\t' + ((pb[ev] || '').trim() || '无')); });
   lines.push('照片\t' + (d.photo ? '（在导出的资料文件里）' : '无'));
   return lines.join('\n');
@@ -1990,6 +2003,7 @@ function renderMe() {
   const pb = d.pb || {};
   const names = rosterList().map(m => m.name);
   const inRoster = d.name && names.indexOf(d.name) >= 0;
+  const dLv = Array.isArray(d.level) ? (d.level[0] || '') : String(d.level || '');   // 草稿里存字符串，兼容老的数组写法
   return `
   <div class="sec-head"><h1>完善我的资料</h1>
     ${d.name ? `<button class="btn ghost sm" data-go="upload">去上报成绩 →</button>` : ''}</div>
@@ -2013,6 +2027,11 @@ function renderMe() {
       <div class="field"><label>学院</label><input id="me_college" value="${esc(d.college || '')}" placeholder="例如 林学院"></div>
       <div class="field"><label>专业 / 班级</label><input id="me_major" value="${esc(d.major || '')}" placeholder="例如 林学 2301"></div>
       <div class="field"><label>年级</label><input id="me_grade" value="${esc(d.grade || '')}" placeholder="例如 2023"></div>
+      <div class="field"><label>身份</label><select id="me_level">
+        ${[['', '未填（让队长核定）'], ['正式', '正式队员'], ['预备', '预备队员'], ['普通', '普通（队里的人，不进公开名册）']].map(([v, l]) =>
+          `<option value="${v}" ${dLv === v ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+      <div class="tiny" style="margin-top:4px">不确定就先留「未填」；正式/预备 会显示在公开名册里</div></div>
     </div>
 
     <h2 style="margin-top:6px">② 个人最好成绩（没有就填「无」）</h2>
@@ -2057,6 +2076,7 @@ function bindMe() {
     return Object.assign({}, d, {
       type: 'maitian-member', name: g('#me_name'), sex: g('#me_sex'),
       college: g('#me_college'), major: g('#me_major'), grade: g('#me_grade'),
+      level: g('#me_level'),
       pb: pb, updated: new Date().toISOString(),
     });
   };
@@ -2491,6 +2511,7 @@ function parseMemberDoc(text) {
     else if (k === '学院') out.college = v;
     else if (k === '专业' || k === '专业班级') out.major = v;
     else if (k === '年级') out.grade = v;
+    else if (k === '身份' || k === '级别') out.level = v;
     else if (ME_PB.indexOf(k) >= 0) out.pb[k] = v;
   });
   if (!out.name && !Object.keys(out.pb).length) return null;
@@ -2507,6 +2528,13 @@ async function applyMemberDoc(doc) {
     const v = String(doc[k] || '').trim();
     if (v && v !== '无') e[k] = v;
   });
+  // 身份（正式 / 预备 / 普通）：只在资料里写了有效身份时才改，空着不动（老的资料文件没有这一项）
+  const lvIn = normLevelOf(doc.level);
+  let levelNote = '';
+  if (lvIn && lvIn.length) {
+    e.level = lvIn;
+    levelNote = '，身份已设为「' + lvIn.join('/') + '」';
+  }
   // 照片：有令牌就直接传成仓库里的头像；没有就先存 dataURL（下次同步一起带上）
   let photoNote = '';
   if (doc.photo && /^data:image\//.test(doc.photo)) {
@@ -2547,7 +2575,7 @@ async function applyMemberDoc(doc) {
     saveLocalOv();
   }
   return { name: doc.name, info: ['sex', 'college', 'major', 'grade'].filter(k => e[k]).length,
-    pbs: add.length, photo: !!e.photo, photoNote: photoNote,
+    pbs: add.length, photo: !!e.photo, photoNote: photoNote + levelNote,
     inRoster: wasInRoster, hint: wasInRoster ? '' : rosterHint(doc.name) };
 }
 
@@ -2563,7 +2591,7 @@ function parseMemberSheet(rows) {
   const head = (rows[hIdx] || []).map(c => String(c == null ? '' : c).trim());
   const colOf = re => { for (let c = 0; c < head.length; c++) if (re.test(head[c])) return c; return -1; };
   const cName = colOf(/姓名|名字/), cSex = colOf(/性别/), cCol = colOf(/学院|院系/),
-    cMaj = colOf(/专业/), cGrd = colOf(/年级/);
+    cMaj = colOf(/专业/), cGrd = colOf(/年级/), cLv = colOf(/身份|级别|状态/);
   const pbCols = {};
   ME_PB.forEach(ev => { for (let c = 0; c < head.length; c++) if (head[c].indexOf(ev) >= 0) { pbCols[ev] = c; break; } });
   const docs = [], skip = [];
@@ -2575,7 +2603,7 @@ function parseMemberSheet(rows) {
     const pb = {};
     ME_PB.forEach(ev => { const v = g(pbCols[ev]); pb[ev] = v || '无'; });
     docs.push({ type: 'maitian-member', name: name, sex: g(cSex), college: g(cCol),
-      major: g(cMaj), grade: g(cGrd), pb: pb, source: '收集表' });
+      major: g(cMaj), grade: g(cGrd), level: g(cLv), pb: pb, source: '收集表' });
   });
   return { docs: docs, skip: skip };
 }
@@ -2597,16 +2625,19 @@ function renderSheetPreview() {
     <div class="notice" style="margin-top:12px">
       收集表里读到 <b>${q.docs.length}</b> 个人${q.skip.length ? '，跳过 ' + q.skip.length + ' 行' + (q.skip.length ? '（' + esc(q.skip.slice(0, 3).join('；')) + '）' : '') : ''}；
       其中 <b>${inRosterN}</b> 位已经在公开名册里（只更新资料）、
-      <b>${brandNewN}</b> 位名册里没有（导入后作为新队员加入，身份默认「正式」）${hiddenN ? '、<b>' + hiddenN + '</b> 位本来就在原始名册里但身份不是正式/预备 —— 光导入资料<b>不会</b>让他出现在名册里，要去「数据管理 → 队员名册」把身份改成「正式」' : ''}。
+      <b>${brandNewN}</b> 位名册里没有（导入后作为新队员加入，身份按表里的「身份」列，没写就按「正式」）${hiddenN ? '、<b>' + hiddenN + '</b> 位本来就在原始名册里但身份不是正式/预备 —— 光导入资料<b>不会</b>让他出现在名册里，要去「数据管理 → 队员名册」把身份改成「正式」' : ''}。
     </div>
     <div class="tbl-wrap" style="max-height:240px;overflow:auto;margin-top:10px">
       <table class="tbl" style="min-width:auto">
         <thead><tr><th class="no-sort">姓名</th><th class="no-sort hide-sm">性别</th>
-          <th class="no-sort hide-sm">学院</th><th class="no-sort">会有成绩项</th><th class="no-sort">在名册</th></tr></thead>
+          <th class="no-sort hide-sm">学院</th><th class="no-sort hide-sm">身份</th><th class="no-sort">会有成绩项</th><th class="no-sort">在名册</th></tr></thead>
         <tbody>${shown.map(d => {
           const pbs = ME_PB.filter(ev => d.pb[ev] && d.pb[ev] !== '无');
+          const lvd = normLevelOf(d.level);
+          const lvS = (lvd && lvd.length) ? lvd.join('/') : (d.level ? esc(String(d.level)) + '?' : '—');
           return `<tr><td><b>${esc(d.name)}</b></td><td class="tiny hide-sm">${esc(d.sex || '')}</td>
             <td class="tiny hide-sm">${esc(d.college || '')}</td>
+            <td class="tiny hide-sm">${esc(lvS)}</td>
             <td class="tiny">${pbs.length ? pbs.map(ev => esc(ev) + ' ' + esc(d.pb[ev])).join('、') : '（全填无）'}</td>
             <td>${mem.has(d.name) ? '<span class="tagbadge green">在</span>'
               : (stOf(d).inBase || stOf(d).isNew)
@@ -2627,15 +2658,17 @@ function renderSheetPreview() {
     let updated = 0, pbs = 0, joined = 0; const stillHidden = [];
     for (const d of q.docs) {
       const st = rosterStatus(d.name);
+      const lvS = normLevelOf(d.level);
+      const lvArr = (lvS && lvS.length) ? lvS : ['正式'];       // 收集表里没写身份 → 按正式
       const r = await applyMemberDoc(d);
       if (!r) continue;
       pbs += r.pbs || 0;
-      if (st.inRoster) updated++;
+      if (st.inRoster || rosterStatus(d.name).inRoster) updated++;   // 表里写了「正式/预备」的，导入后就进名册了
       else if (!st.inBase && !st.isNew) {          // 名册里完全没有 → 真把他加进名册（不然"新增"只是嘴上说说）
         addNewMemberSilently(d.name, { sex: d.sex, college: d.college, major: d.major,
-          grade: d.grade, level: ['正式'], note: '收集表导入' });
+          grade: d.grade, level: lvArr, note: '收集表导入' });
         joined++;
-      } else stillHidden.push(d.name);             // 原始身份不是正式/预备：只有改身份才会显示
+      } else stillHidden.push(d.name);             // 身份写着「普通」（或没定）：不进公开名册
     }
     docSheetQueue = null;
     const tail = stillHidden.length
@@ -2689,10 +2722,15 @@ function renderMemberDocPreview() {
       : '<span class="tagbadge">名册里没有 → 导入后新增一位</span>';
   const hint = st.inRoster ? '' : ('<div class="tiny" style="margin-top:6px;color:var(--wheat)">⚠️ ' + esc(rosterHint(d.doc.name)) + '</div>');
   const pbRows = Object.keys(d.doc.pb || {}).filter(k => d.doc.pb[k] && d.doc.pb[k] !== '无');
+  const lvDoc = normLevelOf(d.doc.level);
+  const lvTxt = (lvDoc && lvDoc.length)
+    ? esc(lvDoc.join('/')) + ((lvDoc.indexOf('正式') >= 0 || lvDoc.indexOf('预备') >= 0) ? '（会进公开名册）' : '（不进公开名册）')
+    : (d.doc.level ? esc(String(d.doc.level)) + '（看不懂 → 不改身份）' : '（没填 → 身份不动）');
   box.innerHTML = `
     <div class="notice" style="margin-top:12px">
       <b>${esc(d.doc.name)}</b>　${badge}<br>
       信息：${['sex', 'college', 'major', 'grade'].filter(k => d.doc[k]).map(k => esc(d.doc[k])).join(' / ') || '（没填）'}<br>
+      身份：${lvTxt}<br>
       最好成绩：${pbRows.length ? pbRows.map(k => esc(k) + ' ' + esc(d.doc.pb[k])).join('　') : '（全填了无）'}<br>
       照片：${d.doc.photo ? '有（' + Math.round(String(d.doc.photo).length / 1024) + ' KB）' : '没有'}
       ${hint}
@@ -3085,7 +3123,7 @@ function exportDataTable() {
     ['队员人数', d.members.length], ['成绩条数', d.records.length],
     [''],
     ['【队员总表】'],
-    ['· 可改：性别 / 学院 / 专业 / 年级 / 身份（身份填 正式、预备、正式/预备；留空 = 不进公开名册）'],
+    ['· 可改：性别 / 学院 / 专业 / 年级 / 身份（身份填 正式 / 预备 / 普通；正式、预备 会显示在公开名册里，普通 = 队里的人但不进公开名册；留空 = 不进公开名册）'],
     ['· 加新队员：最下面加一行，姓名必填；其他列能填就填'],
     ['· 不要改：序号 / 公开显示 / 成绩条数 / 各项目最好成绩（这些是自动算的）'],
     [''],
@@ -3113,12 +3151,7 @@ function buildFixPlan(sheets) {
   (o.newMembers || []).forEach(m => { curNew[m.name] = m; });
   const plan = { memberFix: [], addMember: [], recFix: [], recHide: [], recDel: [], recAdd: [], recEdit: [], skip: [] };
   // 返回 [] = 明确"不进公开名册"；返回 null = 这个值看不懂（例如「队员」），保持原样别动
-  const normLevel = v => {
-    const t = String(v == null ? '' : v).trim();
-    if (!t || t === '未分级' || t === '-' || t === '无' || t === '否' || t === '0') return [];
-    const hit = t.split(/[,，、+/]/).map(x => x.trim()).filter(x => x === '正式' || x === '预备');
-    return hit.length ? hit : null;
-  };
+  const normLevel = normLevelOf;
   const sameLv = (a, b) => (a || []).slice().sort().join('/') === (b || []).slice().sort().join('/');
 
   const mt = sheets['队员总表'] || [];
@@ -3333,7 +3366,7 @@ function parseRosterText(txt) {
     if (seenRow.has(rowKey)) { skip.push('第' + (li + 1) + '行「' + nm + '」与本批前面某行完全相同'); return; }
     seenRow.add(rowKey);
     if (existing.has(nm)) same.push(nm);            // 同名的照加，只做个提醒
-    let lv = get('level').split(/[,，、/]/).map(x => x.trim()).filter(x => x === '正式' || x === '预备');
+    let lv = get('level').split(/[,，、/]/).map(x => x.trim()).filter(x => LEVELS.indexOf(x) >= 0);
     if (!lv.length) lv = ['正式'];
     const sx = get('sex');
     out.push({
