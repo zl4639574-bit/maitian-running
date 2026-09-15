@@ -1,0 +1,134 @@
+/* ============================================================================
+   麦田守望 · 成绩/资料收件中转（腾讯云函数 SCF，Node.js 18）
+   ----------------------------------------------------------------------------
+   做一件事：队员在网页上点「直接提交给队长」→ POST 到这里 → 这里用令牌
+   把提交内容写进仓库的 data/inbox/ 目录 → 队长端「收件箱」里一键接收。
+
+   安全设计（这个函数是对公网开放的，必须防滥用）：
+     · 只允许写 data/inbox/ 下的新文件，别的路径/覆盖一律拒绝；
+     · 必须带队伍口令（环境变量 TEAM_CODE），口令不对直接 403；
+     · 内容做白名单校验（类型、字段、长度、条数、总大小 ≤ 200KB）；
+     · 同一 IP 每分钟最多 5 次；
+     · 只新增不覆盖：写入不带 sha，同名已存在会被 GitHub 拒绝。
+
+   环境变量（在「函数配置 → 环境变量」里填）：
+     GH_TOKEN   写权限令牌（Contents: Read and write）—— 只放在这里，绝不进网页
+     GH_OWNER   zl4639574-bit
+     GH_REPO    maitian-running
+     GH_BRANCH  master
+     TEAM_CODE  队伍口令（自己起一个，告诉队员的那串，别用队徽/学号）
+   ========================================================================== */
+
+const GH = 'https://api.github.com';
+const MAX_BYTES = 200 * 1024;      // 单次提交上限 200KB（含照片）
+const MAX_PER_MIN = 5;             // 同 IP 每分钟次数
+const hits = {};                   // 简易限流（函数实例内有效，够用）
+
+function cors(extra) {
+  return Object.assign({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+    'Content-Type': 'application/json; charset=utf-8',
+  }, extra || {});
+}
+function out(status, obj) {
+  return { statusCode: status, headers: cors(), isBase64Encoded: false, body: JSON.stringify(obj) };
+}
+const str = v => String(v == null ? '' : v).trim();
+function badName(n) { return !/^[\u4e00-\u9fa5·a-zA-Z][\u4e00-\u9fa5·a-zA-Z0-9]{1,13}$/.test(str(n)); }
+
+/** 校验一次提交，返回 {ok, error, clean} */
+function validate(body) {
+  const env = process.env;
+  if (str(body.code) !== str(env.TEAM_CODE)) return { ok: false, error: '队伍口令不对' };
+  const type = str(body.type);
+  if (type !== 'scores' && type !== 'member') return { ok: false, error: '类型只能是 scores / member' };
+  const p = body.payload;
+  if (!p || typeof p !== 'object') return { ok: false, error: '没有内容' };
+  const raw = JSON.stringify(p);
+  if (Buffer.byteLength(raw, 'utf8') > MAX_BYTES) return { ok: false, error: '内容太大了（超过 200KB，照片请先压缩）' };
+
+  if (type === 'member') {
+    const name = str(p.name);
+    if (badName(name)) return { ok: false, error: '姓名不合法' };
+    const clean = {
+      type: 'maitian-member', name: name,
+      sex: str(p.sex).slice(0, 4), college: str(p.college).slice(0, 30),
+      major: str(p.major).slice(0, 40), grade: str(p.grade).slice(0, 12),
+      pb: {}, photo: '',
+    };
+    const PB = ['800米', '1500米', '3000米', '5000米', '10000米', '半马', '全马'];
+    PB.forEach(k => { const v = str(p.pb && p.pb[k]); if (v && v !== '无') clean.pb[k] = v.slice(0, 20); });
+    const ph = str(p.photo);
+    if (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(ph) && ph.length <= 150 * 1024) clean.photo = ph;
+    return { ok: true, clean: clean };
+  }
+
+  const rows = Array.isArray(p.rows) ? p.rows.slice(0, 200) : [];
+  if (!rows.length) return { ok: false, error: '没有成绩行' };
+  const cleanRows = [];
+  for (const r of rows) {
+    const name = str(r && r.name);
+    if (badName(name)) continue;
+    const fmt = str(r && r.fmt).slice(0, 20);
+    if (!fmt) continue;
+    cleanRows.push({ name: name, event: str(r.event).slice(0, 20) || '5000米', fmt: fmt,
+      sec: Number(r.sec) || 0, date: str(r.date).slice(0, 20), meet: str(r.meet).slice(0, 60),
+      rank: str(r.rank).slice(0, 20) });
+  }
+  if (!cleanRows.length) return { ok: false, error: '成绩行都没有姓名或成绩' };
+  return { ok: true, clean: { type: 'maitian-scores', date: str(p.date).slice(0, 20), rows: cleanRows } };
+}
+
+exports.main_handler = async (event, context) => {
+  // API 网关触发器：OPTIONS 预检
+  const method = (event.httpMethod || event.requestContext && event.requestContext.httpMethod || 'POST').toUpperCase();
+  if (method === 'OPTIONS') return { statusCode: 204, headers: cors(), body: '' };
+  if (method !== 'POST') return out(405, { ok: false, error: '只接受 POST' });
+
+  let body;
+  try {
+    const raw = event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '{}');
+    body = JSON.parse(raw);
+  } catch (e) { return out(400, { ok: false, error: '提交内容不是合法 JSON' }); }
+
+  // 限流
+  const ip = str(event.headers && (event.headers['x-forwarded-for'] || event.headers['X-Forwarded-For'])).split(',')[0] || 'unknown';
+  const now = Date.now();
+  hits[ip] = (hits[ip] || []).filter(t => now - t < 60000);
+  if (hits[ip].length >= MAX_PER_MIN) return out(429, { ok: false, error: '提交太频繁了，等一分钟再试' });
+  hits[ip].push(now);
+
+  const v = validate(body);
+  if (!v.ok) return out(400, { ok: false, error: v.error });
+
+  const env = process.env;
+  if (!env.GH_TOKEN || !env.GH_OWNER || !env.GH_REPO) return out(500, { ok: false, error: '中转还没配好（缺 GH_TOKEN / GH_OWNER / GH_REPO）' });
+
+  const id = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 7);
+  const path = 'data/inbox/' + id + '.json';
+  const content = Buffer.from(JSON.stringify({ id: id, type: v.clean.type, at: new Date().toISOString(), data: v.clean }, null, 1), 'utf8').toString('base64');
+  const url = GH + '/repos/' + env.GH_OWNER + '/' + env.GH_REPO + '/contents/' + path;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + env.GH_TOKEN, 'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'maitian-relay' },
+        body: JSON.stringify({ message: '收到上报 ' + id + '（' + v.clean.type + '）', content: content, branch: env.GH_BRANCH || 'master' }),
+      });
+      if (r.ok) return out(200, { ok: true, id: id });
+      const t = await r.text();
+      if (r.status === 401 || r.status === 403) return out(500, { ok: false, error: '中转的令牌没权限写仓库（Contents 要 Read and write）' });
+      if (r.status === 422) return out(409, { ok: false, error: '这条已经收到过了，请勿重复提交' });
+      if (attempt === 2) return out(502, { ok: false, error: '写仓库失败 ' + r.status + '：' + t.slice(0, 120) });
+    } catch (e) {
+      if (attempt === 2) return out(502, { ok: false, error: '连不上 GitHub：' + String(e && e.message).slice(0, 120) });
+    }
+    await new Promise(res => setTimeout(res, 800));
+  }
+  return out(500, { ok: false, error: '提交失败，稍后重试' });
+};
