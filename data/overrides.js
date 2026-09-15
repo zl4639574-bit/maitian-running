@@ -531,7 +531,7 @@ window.TEAM_OVERRIDES = {
   "王涛": {
    "college": "生命科学学院",
    "major": "生物工程",
-   "grade": "2824",
+   "grade": "2024",
    "level": [
     "正式"
    ],
@@ -892,32 +892,6 @@ window.TEAM_OVERRIDES = {
    "college": "林学院"
   },
   {
-   "uid": "rmu2o5csb_6_ogmb",
-   "name": "王金豪",
-   "event": "半马",
-   "sec": 84,
-   "fmt": "1:24",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789476573179,
-   "sex": "男",
-   "college": "林学院"
-  },
-  {
-   "uid": "rmu2o5csb_7_cv9s",
-   "name": "王金豪",
-   "event": "全马",
-   "sec": 260,
-   "fmt": "4:20",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789476573179,
-   "sex": "男",
-   "college": "林学院"
-  },
-  {
    "uid": "rmu2rz3hk_1_n470",
    "name": "易嘉庚",
    "event": "5000米",
@@ -1090,7 +1064,9 @@ window.TEAM_OVERRIDES = {
  "pbHidden": [
   "pbmu1ygwzqpkz8",
   "rmu2ktj59_6_1j21",
-  "rmu2ktj59_7_v9sd"
+  "rmu2ktj59_7_v9sd",
+  "rmu2o5csb_6_ogmb",
+  "rmu2o5csb_7_cv9s"
  ],
  "hiddenRecords": [
   "cmu14r7vj|李志宏|5009"
@@ -1265,5 +1241,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T14:38:57.354Z"
+ "updated": "2026-09-15T14:49:02.378Z"
 };
