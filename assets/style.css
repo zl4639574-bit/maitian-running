@@ -1,33 +1,42 @@
 :root{
-  /* ===== 配色取自队徽（images/logo.jpg）=====
-     主绿 #14781F / #178522 / #5D9A62 / #A5D0A8
-     麦金 #E9C821 / #E5D45F      底色米白 #FBFDFA            */
-  --green:#14781F;        /* 主绿：按钮、链接、数字、选中态 */
-  --green-2:#178522;      /* 亮绿：渐变上端、描边 */
-  --green-3:#5D9A62;      /* 中绿：次级线条 */
-  --green-soft:#EAF4E7;   /* 浅绿底：徽章、悬停 */
-  --green-line:#DCEBD8;   /* 卡片描边 */
-  --wheat:#C9A600;        /* 深金：金色文字（保证对比度） */
-  --wheat-bright:#E9C821; /* 亮金：奖牌、强调底 */
-  --wheat-soft:#FBF6DC;   /* 浅金底：提示条 */
-  --bg:#F7FAF5; --card:#ffffff; --t1:#12261A; --t2:#5F6F62; --t3:#9AAAA0;
-  --line:#E6EDE2;
-  --field:#14781F; --blue:#1E7A6B; --red:#C0392B; --orange:#E08A00;
-  --gold:#D9A800; --silver:#9AA79C; --bronze:#B0793A;
-  --r:18px; --shadow:0 4px 14px rgba(20,120,31,.07);
+  /* ===== 配色取自背景线条画（即梦生成 · 队徽线稿版）=====
+     线条核心色：绿 #1F461F→#2D542D、金 #BCA944；画面底色 #FAFAF8
+     整体走"柔和鼠尾草绿 + 古金"，白底低对比             */
+  --green:#2F6B39;        /* 主绿：按钮、链接、数字、选中态（白底对比 5.4:1） */
+  --green-2:#3E8A48;      /* 亮绿：渐变上端 */
+  --green-3:#7FA786;      /* 中绿：次级线条、名次圆标 */
+  --green-soft:#EDF3E9;   /* 浅绿底：徽章、悬停 */
+  --green-line:#DDE7D7;   /* 卡片描边 */
+  --wheat:#8A7314;        /* 深金：金色文字（白底 5.1:1） */
+  --wheat-bright:#D6C05A; /* 亮金：奖牌、强调底、时间轴圆点 */
+  --wheat-soft:#F8F4DC;   /* 浅金底：提示条 */
+  --bg:#FAFAF7; --card:#ffffff; --t1:#1E2A1B; --t2:#66705F; --t3:#98A192;
+  --line:#E7EBE0;
+  --field:#2F6B39; --blue:#4C7A6B; --red:#C0392B; --orange:#D08A2A;
+  --gold:#B8930F; --silver:#9AA79C; --bronze:#A9762F;
+  --r:18px; --shadow:0 4px 14px rgba(47,107,57,.06);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-html{background:var(--bg)}
+html{background:linear-gradient(#FDFDFB 0%, #FAFAF7 55%, #F0F5EA 100%)}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",Arial,sans-serif;
   background:transparent; color:var(--t1); -webkit-font-smoothing:antialiased;
   padding:18px 18px 60px; display:flex; flex-direction:column; align-items:center; min-height:100vh;
 }
-/* 背景图：按队徽配色生成的麦田（images/bg_field.svg，另有 bg_night / bg_plain 两个备选） */
+/* 背景图：即梦生成的队徽线条画（bg_ai_soft.jpg = 线条柔化 45% 版，另存 bg_ai.jpg 原强度）
+   手机：铺满(cover) 锚在底部 —— 环线在卡片边距里若隐若现
+   电脑：整幅等比居中(contain) —— 宽屏不会把圆环裁掉
+   换图只改下面的文件名即可 */
 body::before{
   content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-  background:url('../images/bg_field.svg') center bottom / cover no-repeat;
+  background-image:url('../images/bg_ai_soft.jpg');
+  background-repeat:no-repeat;
+  background-position:center bottom;
+  background-size:cover;
+}
+@media(min-width:721px){
+  body::before{background-position:center center; background-size:contain}
 }
 a{color:var(--green);text-decoration:none}
 img{max-width:100%}
