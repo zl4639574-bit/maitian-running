@@ -475,12 +475,10 @@ window.TEAM_OVERRIDES = {
    "grade": "2022"
   },
   "李志宏": {
+   "sex": "男",
    "college": "林学院",
-   "major": "",
-   "grade": "2023",
-   "level": [
-    "正式"
-   ]
+   "major": "智林2301",
+   "grade": "2023"
   },
   "阿巴小洛": {
    "college": "林学院",
@@ -608,6 +606,84 @@ window.TEAM_OVERRIDES = {
    "fmt": "16:40",
    "date": "2026.6.20",
    "note": "全国农林高校运动会"
+  },
+  {
+   "uid": "rmu24iyr6_1_8a94",
+   "name": "李志宏",
+   "event": "800米",
+   "sec": 129,
+   "fmt": "2:09",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789443615858,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu24iyr6_2_vmdr",
+   "name": "李志宏",
+   "event": "1500米",
+   "sec": 274,
+   "fmt": "4:34",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789443615858,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu24iyr6_3_l3qm",
+   "name": "李志宏",
+   "event": "3000米",
+   "sec": 606,
+   "fmt": "10:06",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789443615858,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu24iyr6_4_vua5",
+   "name": "李志宏",
+   "event": "5000米",
+   "sec": 1095,
+   "fmt": "18:15",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789443615858,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu24iyr6_5_in67",
+   "name": "李志宏",
+   "event": "10000米",
+   "sec": 2361,
+   "fmt": "39:21",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789443615858,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu24iyr6_6_pj59",
+   "name": "李志宏",
+   "event": "半马",
+   "sec": 5009,
+   "fmt": "1:23:29",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789443615858,
+   "sex": "男",
+   "college": "林学院"
   }
  ],
  "pbHidden": [
@@ -704,5 +780,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T03:11:04.737Z"
+ "updated": "2026-09-15T03:40:24.645Z"
 };
