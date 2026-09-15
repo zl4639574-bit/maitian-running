@@ -534,6 +534,9 @@ window.TEAM_OVERRIDES = {
     "正式"
    ],
    "sex": "男"
+  },
+  "王金豪": {
+   "photo": "images/avatars/mhmttw.jpg"
   }
  },
  "newMembers": [],
@@ -893,5 +896,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T08:49:33.514Z"
+ "updated": "2026-09-15T09:00:30.137Z"
 };
