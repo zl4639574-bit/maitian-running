@@ -973,6 +973,22 @@ function renderUpload() {
   <div class="sec-head"><h1>${rep ? '成绩上报' : '上传成绩'}</h1>
     ${MODE === 'captain' ? '<button class="btn ghost sm" data-go="board">看成绩榜 →</button>' : ''}</div>
 
+  ${rep ? (function () {
+    const saved = (meDraft().name || '').trim();        // 本机存过的资料（队员自己手机上）
+    return `<div class="card sec" style="border-left:5px solid var(--green);background:#f4f8f2">
+      <h2 style="margin-bottom:6px">${saved ? '欢迎回来，' + esc(saved) + ' 👋' : '第一次来？先花 1 分钟完善资料 👇'}</h2>
+      <div class="tiny" style="margin-bottom:12px">
+        ${saved ? '你上次填的资料还在这台手机里（姓名：' + esc(saved) + '）—— 要改就点下面的按钮，不用重填。'
+                : '完善资料 = 姓名 / 性别 / 学院 / 专业 / 年级 / 身份 / 个人最好成绩 / 照片。<br>填完点「复制资料文本」或「导出资料文件」发给队长，队长才能把你写进名册和成绩榜。'}
+      </div>
+      <div class="chips">
+        <button class="btn" data-go="me">${saved ? '完善 / 修改我的资料 →' : '开始完善我的资料 →'}</button>
+        <button class="btn ghost" id="btnJumpUpload">直接上报成绩 ↓</button>
+      </div>
+      <div class="tiny" style="margin-top:10px">两件事互不影响：资料填一次就行，成绩每次比赛都能报。</div>
+    </div>`;
+  })() : ''}
+
   ${rep ? `<div class="notice" style="margin-bottom:16px">
     <b>怎么把成绩交给队长（三步）</b><br>
     ① 下面把这次比赛/测速的成绩一条条填进来（填错可以删了重填）；<br>
@@ -1753,6 +1769,11 @@ function nameKnownToTeam(name) {
 }
 
 function bindUpload() {
+  const ju = $('#btnJumpUpload');
+  if (ju) ju.onclick = () => {
+    goTab('upload');
+    setTimeout(() => { const el = document.getElementById('f_name'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } }, 250);
+  };
   const fn = $('#f_name');            // 姓名不再给下拉提示：自己打字，只在"名册里没有"时轻声提醒一下
   if (fn) fn.oninput = () => {
     const box = $('#f_nameHint');
@@ -4980,6 +5001,8 @@ function startAutoRefresh() {
   if ((TABS[MODE] || []).some(t => t[0] === h)) state.tab = h;
   // 这个模式里没有「总览」这类默认页（比如成绩上报页只有一个 tab）→ 落到第一个可用 tab
   if (!(TABS[MODE] || []).some(t => t[0] === state.tab)) state.tab = (TABS[MODE] || [['home']])[0][0];
+  // 队员端：第一次来（本机没存过资料）直接停在「完善我的资料」，填过的人还是停在成绩上报
+  if (MODE === 'report' && !h && !(meDraft().name || '').trim()) state.tab = 'me';
   await loadCloud(false);
   const healed = healRosterHidden();          // 把"身份已升级但被「已移除」压着"的人放回名册
   if (healed) setTimeout(() => toast('有 ' + healed + ' 位身份已改成正式/预备的人之前被「已移除」压着，已自动放回名册 —— 点一次「同步我的修改到线上」他们就会出现在公开名册里', 16000), 1500);
