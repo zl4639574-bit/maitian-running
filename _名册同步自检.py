@@ -44,15 +44,29 @@ def main():
             return False
 
         load()
+        # ①a 数据现状：李志宏（云端已去掉移除记录）在名册里；王俊尧（刻意移出的预备）不在
         r1 = c.js(r"""(function(){
   const names = rosterList().map(m => m.name);
   const l = JSON.parse(localStorage.getItem('mt_ov_local_v1') || '{}');
   return { lzh: names.indexOf('李志宏') >= 0, wjy: names.indexOf('王俊尧') >= 0,
            shown: l.shown || [], n: names.length };
 })()""")
-        print("① 启动后：", json.dumps(r1, ensure_ascii=False))
-        ok1 = r1["lzh"] and not r1["wjy"] and "李志宏" in (r1["shown"] or [])
-        res.append(("① 身份升级过、被「已移除」压着的李志宏 自动回到名册；王俊尧仍不显示", ok1))
+        print("①a 启动后：", json.dumps(r1, ensure_ascii=False))
+        ok1 = r1["lzh"] and not r1["wjy"]
+        res.append(("①a 李志宏（身份正式）在名册里；王俊尧（刻意移出）不显示", ok1))
+
+        # ①b 自愈机制：本地模拟"原始身份队员的人被改成正式、但还躺在移除名单里" → 启动后自动放回
+        c.js("""localStorage.setItem('mt_ov_local_v1', JSON.stringify(
+          { hidden: ['张津浩'], memberEdits: { '张津浩': { level: ['正式'] } } })); 'ok'""")
+        load()
+        r1b = c.js(r"""(function(){
+  const l = JSON.parse(localStorage.getItem('mt_ov_local_v1') || '{}');
+  return { inRoster: rosterList().map(m => m.name).indexOf('张津浩') >= 0, shown: l.shown || [] };
+})()""")
+        print("①b 自愈：", json.dumps(r1b, ensure_ascii=False))
+        ok1b = r1b["inRoster"] and "张津浩" in (r1b["shown"] or [])
+        res.append(("①b 身份已升级却被「已移除」压着的人，打开页面自动放回名册（自愈）", ok1b))
+        c.js("localStorage.removeItem('mt_ov_local_v1'); 'ok'")
 
         # ③ 已移除区点「↺ 恢复显示」
         r3 = c.js(r"""(async () => {
@@ -76,13 +90,7 @@ def main():
         res.append(("③ 已移除区点「↺ 恢复显示」→ 他真的进名册", ok3))
 
         # ④ 资料导入把身份设成正式（真实路径）：被本地 hidden 压着的人也要出来
-        r4 = c.js(r"""(async () => {
-  const w = ms => new Promise(r => setTimeout(r, ms));
-  const l0 = JSON.parse(localStorage.getItem('mt_ov_local_v1') || '{}');
-  l0.hidden = (l0.hidden || []).concat(['张津浩']);          // 模拟"当年被误移除"
-  localStorage.setItem('mt_ov_local_v1', JSON.stringify(l0));
-  return { before: rosterList().map(m => m.name).indexOf('张津浩') >= 0 };
-})()""")
+        c.js("""localStorage.setItem('mt_ov_local_v1', JSON.stringify({ hidden: ['张津浩'] })); 'ok'""")
         load()
         before = c.js("rosterList().map(m => m.name).indexOf('张津浩') >= 0")
         r4b = c.js(r"""(async () => {
@@ -100,8 +108,10 @@ def main():
         res.append(("④ 资料导入身份=正式：把被「已移除」压着的人也真的放回名册", ok4))
 
         # ⑤ 同步载荷：hidden 必须扣掉本机 shown 的名字（线上才真的显示）
+        c.js("""localStorage.setItem('mt_ov_local_v1', JSON.stringify(
+          { shown: ['王俊尧'], memberEdits: { '张津浩': { level: ['正式'] } } })); 'ok'""")
         load()
-        c.js("""localStorage.setItem('mt_gh_cfg_v1', JSON.stringify({owner:'zl4639574-bit',repo:'maitian-running',branch:'master',token:'TESTTOKEN'})); 'ok'""")
+        c.js("localStorage.setItem('mt_gh_cfg_v1', JSON.stringify({owner:'zl4639574-bit',repo:'maitian-running',branch:'master',token:'TESTTOKEN'})); 'ok'")
         load()
         c.js(r"""(function(){
   window.__puts = [];

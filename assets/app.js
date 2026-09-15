@@ -244,9 +244,12 @@ function ov() {
       });
     })(),
     results: (function () {
-      const hid = new Set(c.hiddenResults || []);
+      // ⚠️ 必须把本机删过的（l.hiddenResults）也算进去，并减掉本机恢复的（l.shownResults），
+      //    只按云端 hiddenResults 过滤的话，队长点了「删」页面毫无反应（2026-09-15 修）
+      const hid = new Set((c.hiddenResults || []).concat(l.hiddenResults || []));
+      (l.shownResults || []).forEach(k => hid.delete(k));
       return (c.results || []).concat(l.results || [])
-        .filter(r => !hid.has(r.uid || (r.name + '|' + r.sec)));
+        .filter(r => !hid.has(resultKey(r)));
     })(),
     photos: (function () {
       const hid = new Set(effHiddenPhotos(c, l));
@@ -342,6 +345,21 @@ function teamInfo() {
 /** 名册：只保留正式 / 预备 队员，去掉被删的，套用修改
     ⚠️ 身份必须"先套上改后的、再判断"，否则把原始身份「队员」的人改成「正式」永远不生效
     （2026-09-15 修：队员资料导入 / 队员数据表里把身份填成「正式」，公开名册却一直不出现） */
+/** 一条成绩的身份（删除/恢复都按它认，不能用下标 —— 列表里云端成绩排在前面，下标对不上） */
+function resultKey(r) {
+  if (!r) return '';
+  return String(r.uid || ((r.name || '') + '|' + (r.sec === undefined ? '' : r.sec)));
+}
+/** 被删掉的成绩（云端 + 本机记的，减掉本机恢复的）—— 用来渲染"已删除（可恢复）" */
+function removedResults() {
+  const c = CLOUD_OV || {}, l = LOCAL_OV || {};
+  const shown = l.shownResults || [];
+  const keys = Array.from(new Set((c.hiddenResults || []).concat(l.hiddenResults || [])))
+    .filter(k => shown.indexOf(k) < 0);
+  const all = (c.results || []).concat(l.results || []);
+  return keys.map(k => all.filter(r => resultKey(r) === k)[0] || { _key: k }).filter(Boolean);
+}
+
 function rosterList() {
   const o = ov();
   const hidden = new Set(o.hidden);
@@ -1567,16 +1585,31 @@ function renderManage() {
       <table class="tbl" style="min-width:auto">
         <thead><tr><th class="no-sort">姓名</th><th class="no-sort">项目</th><th class="no-sort">成绩</th>
           <th class="no-sort hide-sm">日期</th><th class="no-sort hide-sm">赛事</th><th class="no-sort"></th></tr></thead>
-        <tbody>${added.map((r, i) => `
+        <tbody>${added.map(r => `
           <tr><td><b>${esc(r.name)}</b></td><td class="tiny">${esc(r.event)}</td>
             <td class="tm">${esc(r.fmt || fmtSec(r.sec))}</td>
             <td class="tiny hide-sm">${esc(r.date || '')}</td><td class="tiny hide-sm">${esc(r.meet || '')}</td>
-            <td><button class="btn danger sm" data-pubdel="${i}">删</button></td></tr>`).join('')}
+            <td><button class="btn danger sm" data-resdel="${esc(resultKey(r))}">删</button></td></tr>`).join('')}
         </tbody>
       </table>
     </div>
     <button class="btn" id="btnPublishMine" style="margin-top:14px">把「上传成绩」里录入的 ${myResults().length} 条发布到线上</button>`
       : '<div class="empty">还没有发布过成绩</div>'}
+    ${removedResults().length ? `
+    <h2 style="margin-top:22px">已删除的成绩（${removedResults().length} 条，可恢复）</h2>
+    <div class="tiny" style="margin-bottom:10px">删错的在这里点「↺ 恢复」，再点一次「同步我的修改到线上」就回来了。</div>
+    <div class="tbl-wrap">
+      <table class="tbl" style="min-width:auto">
+        <thead><tr><th class="no-sort">姓名</th><th class="no-sort">项目</th><th class="no-sort">成绩</th>
+          <th class="no-sort hide-sm">赛事</th><th class="no-sort"></th></tr></thead>
+        <tbody>${removedResults().map(r => `
+          <tr><td><b>${esc(r.name || '（找不到原始记录）')}</b></td><td class="tiny">${esc(r.event || '')}</td>
+            <td class="tm">${esc(r.fmt || (r.sec ? fmtSec(r.sec) : ''))}</td>
+            <td class="tiny hide-sm">${esc(r.meet || '')}</td>
+            <td><button class="btn ghost sm" data-resrestore="${esc(r._key || resultKey(r))}">↺ 恢复</button></td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
   </div>` : ''}`;
 }
 
@@ -3151,6 +3184,9 @@ function pendingCount() {
   if (l.honors) n += 1;
   if (l.activities) n += 1;
   if (l.hidden && l.hidden.length) n += l.hidden.length;
+  if (l.shown && l.shown.length) n += l.shown.length;              // 名册「↺ 恢复显示」
+  if (l.hiddenResults && l.hiddenResults.length) n += l.hiddenResults.length;   // 自由成绩：删
+  if (l.shownResults && l.shownResults.length) n += l.shownResults.length;      // 自由成绩：恢复
   if (l.memberEdits) n += Object.keys(l.memberEdits).length;
   if (l.newMembers && l.newMembers.length) n += l.newMembers.length;
   if (l.results && l.results.length) n += l.results.length;
@@ -4183,12 +4219,36 @@ function bindManage() {
   if (p2) p2.onclick = publishAndSync;          // 同步分区：本机有没发布的成绩时出现
   const p3 = $('#btnPublishSync');
   if (p3) p3.onclick = publishAndSync;          // 上传成绩页：导入完就能看到的大按钮
-  $$('[data-pubdel]').forEach(b => b.onclick = () => {
+  $$('[data-resdel]').forEach(b => b.onclick = () => {
+    const key = b.dataset.resdel;
+    if (!key) return;
     const l = ovLocal();
-    const arr = ovLocal().results.slice();
-    arr.splice(+b.dataset.pubdel, 1);
-    l.results = arr;
-    saveLocalOv(); render();
+    const own = (l.results || []).filter(r => resultKey(r) === key);
+    if (own.length) {                                       // 本机发布的 → 直接从本机删
+      l.results = (l.results || []).filter(r => resultKey(r) !== key);
+      l.shownResults = (l.shownResults || []).filter(x => x !== key);   // 和「恢复」互斥
+      saveLocalOv();
+      toast('已删除这条成绩 —— 记得点「同步我的修改到线上」', 10000);
+    } else {                                                // 云端已发布的 → 记进 hiddenResults 屏蔽掉
+      l.hiddenResults = (l.hiddenResults || []).concat([key]).filter((x, i, a) => a.indexOf(x) === i);
+      l.shownResults = (l.shownResults || []).filter(x => x !== key);
+      saveLocalOv();
+      toast('已删除这条线上成绩 —— 记得点「同步我的修改到线上」，线上才会真的消失', 12000);
+    }
+    render();
+  });
+  $$('[data-resrestore]').forEach(b => b.onclick = () => {
+    const key = b.dataset.resrestore;
+    if (!key) return;
+    const l = ovLocal();
+    l.hiddenResults = (l.hiddenResults || []).filter(x => x !== key);
+    // 云端那份 hiddenResults 本机删不掉 → 必须显式记进 shownResults，同步时才会扣掉
+    if ((CLOUD_OV && CLOUD_OV.hiddenResults || []).indexOf(key) >= 0) {
+      l.shownResults = (l.shownResults || []).concat([key]).filter((x, i, a) => a.indexOf(x) === i);
+    }
+    saveLocalOv();
+    toast('已恢复这条成绩 —— 记得点「同步我的修改到线上」，线上才会重新显示', 12000);
+    render();
   });
 }
 
@@ -4610,10 +4670,13 @@ async function pushToGitHub() {
       })(),
       results: (function () {
         const hid = new Set((cloud.hiddenResults || []).concat(l.hiddenResults || []));
+        (l.shownResults || []).forEach(k => hid.delete(k));      // 本机"恢复"的要顶掉云端的删除记录
         return (cloud.results || []).concat(l.results || [])
-          .filter(r => !hid.has(r.uid || (r.name + '|' + r.sec)));
+          .filter(r => !hid.has(resultKey(r)));
       })(),
-      hiddenResults: (cloud.hiddenResults || []).concat(l.hiddenResults || []),
+      hiddenResults: (cloud.hiddenResults || []).concat(l.hiddenResults || [])
+        .filter(k => (l.shownResults || []).indexOf(k) < 0),
+      shownResults: (l.shownResults || []),
       competitions: (cloud.competitions || []).concat(l.competitions || []),
       compRecords: mergeCompRecords(cloud.compRecords, l.compRecords),
       pbAdded: (function () {

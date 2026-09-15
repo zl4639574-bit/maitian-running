@@ -628,7 +628,10 @@ window.TEAM_OVERRIDES = {
    "published": true
   }
  ],
- "hiddenResults": [],
+ "hiddenResults": [
+  "rmu114vax_1_vq0n",
+  "rmu16v607_1_ot0d"
+ ],
  "competitions": [
   {
    "id": "cmu14r7vj",
