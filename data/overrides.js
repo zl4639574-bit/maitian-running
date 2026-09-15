@@ -797,7 +797,72 @@ window.TEAM_OVERRIDES = {
    "college": "林学院"
   },
   {
-   "uid": "rmu2ktj59_6_1j21",
+   "uid": "rmu2o5csb_1_lnvv",
+   "name": "王金豪",
+   "event": "800米",
+   "sec": 135,
+   "fmt": "2:15",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789476573179,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2o5csb_2_3gmg",
+   "name": "王金豪",
+   "event": "1500米",
+   "sec": 300,
+   "fmt": "5:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789476573179,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2o5csb_3_6sq7",
+   "name": "王金豪",
+   "event": "3000米",
+   "sec": 610,
+   "fmt": "10:10",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789476573179,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2o5csb_4_045n",
+   "name": "王金豪",
+   "event": "5000米",
+   "sec": 1050,
+   "fmt": "17:30",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789476573179,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2o5csb_5_zbcs",
+   "name": "王金豪",
+   "event": "10000米",
+   "sec": 2250,
+   "fmt": "37:30",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789476573179,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu2o5csb_6_ogmb",
    "name": "王金豪",
    "event": "半马",
    "sec": 84,
@@ -805,12 +870,12 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789470982701,
+   "ts": 1789476573179,
    "sex": "男",
    "college": "林学院"
   },
   {
-   "uid": "rmu2ktj59_7_v9sd",
+   "uid": "rmu2o5csb_7_cv9s",
    "name": "王金豪",
    "event": "全马",
    "sec": 260,
@@ -818,13 +883,15 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789470982701,
+   "ts": 1789476573179,
    "sex": "男",
    "college": "林学院"
   }
  ],
  "pbHidden": [
-  "pbmu1ygwzqpkz8"
+  "pbmu1ygwzqpkz8",
+  "rmu2ktj59_6_1j21",
+  "rmu2ktj59_7_v9sd"
  ],
  "hiddenRecords": [
   "cmu14r7vj|李志宏|5009"
@@ -999,5 +1066,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T11:16:28.574Z"
+ "updated": "2026-09-15T12:49:41.471Z"
 };
