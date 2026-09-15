@@ -855,7 +855,73 @@ window.TEAM_OVERRIDES = {
    "albumDate": "2026",
    "file": "up_1789456205057_1.jpg",
    "caption": "IMG_20260417_18502"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789456365036_5.jpg",
+   "caption": "IMG_20260417_18385"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789456365688_0.jpg",
+   "caption": "IMG_20260417_18492"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462004236_0.jpg",
+   "caption": "Image_177724492825"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462004289_3.jpg",
+   "caption": "mmexport1b35b81f3a"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462004317_5.jpg",
+   "caption": "mmexport67bb1ee4e9"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462004351_7.jpg",
+   "caption": "mmexport1777183090"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462004388_1.jpg",
+   "caption": "Image_177724491121"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462004611_6.jpg",
+   "caption": "mmexportb0d0bca883"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462004748_2.jpg",
+   "caption": "IMG_20260426_17154"
+  },
+  {
+   "album": "2026年接力长城",
+   "albumDate": "2026",
+   "file": "up_1789462005673_4.jpg",
+   "caption": "mmexport98628c8cf6"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789462062753_0.jpg",
+   "caption": "mmexport1fcef8761e"
   }
  ],
- "updated": "2026-09-15T07:11:20.247Z"
+ "updated": "2026-09-15T08:47:52.251Z"
 };
