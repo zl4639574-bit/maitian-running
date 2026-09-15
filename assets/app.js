@@ -3816,20 +3816,26 @@ function relayCfg() {
   return (r && String(r.url || '').trim()) ? { url: String(r.url).trim(), code: String(r.code || '') } : null;
 }
 
-/** 提交到中转（队员端用）。返回 {ok, error} */
+/** 提交到中转（队员端用）。用 text/plain 发，避免浏览器跨域预检（函数 URL / API 网关都可能不支持 OPTIONS）。返回 {ok, error} */
 async function postToRelay(type, payload) {
   const rc = relayCfg();
   if (!rc) return { ok: false, error: '队长还没配置收件地址' };
   try {
+    const ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = ac ? setTimeout(() => ac.abort(), 25000) : null;
     const r = await fetch(rc.url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },   // 故意用 text/plain：简单请求，不触发预检
       body: JSON.stringify({ code: rc.code, type: type, payload: payload }),
+      signal: ac ? ac.signal : undefined,
     });
+    if (timer) clearTimeout(timer);
     const j = await r.json().catch(() => ({}));
     if (r.ok && j && j.ok) return { ok: true, id: j.id };
     return { ok: false, error: (j && j.error) || ('提交失败 ' + r.status) };
   } catch (e) {
-    return { ok: false, error: '连不上收件服务（' + String((e && e.message) || e).slice(0, 40) + '）' };
+    const msg = String((e && e.message) || e);
+    return { ok: false, error: /abort/i.test(msg) ? '收件服务超时（看看云函数日志）' : ('连不上收件服务（' + msg.slice(0, 40) + '）') };
   }
 }
 

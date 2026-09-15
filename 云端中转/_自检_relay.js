@@ -39,6 +39,19 @@ const ev = (body, method, headers) => ({ method: method || 'POST', body: typeof 
   check('兼容 base64 请求体（部分网关会编码）',
     (await relay.main_handler({ httpMethod: 'POST', isBase64Encoded: true, body: Buffer.from(JSON.stringify(goodScores)).toString('base64'), headers: {} }, {})).statusCode === 200);
 
+  console.log('\n①b 腾讯云「函数 URL」风格事件（API 网关触发器已下线 → 走函数 URL）');
+  r = await relay.main_handler({ requestContext: { http: { method: 'POST' } }, isBase64Encoded: true,
+    headers: { 'x-forwarded-for': '10.9.9.9' }, body: Buffer.from(JSON.stringify(goodScores)).toString('base64') }, {});
+  check('函数URL（requestContext.http.method + base64）：成功', r.statusCode === 200 && JSON.parse(r.body).ok === true, r.body.slice(0, 40));
+  r = await relay.main_handler({ httpMethod: 'POST', headers: { 'x-forwarded-for': '10.9.9.10' }, body: goodScores }, {});
+  check('body 已经是对象：也能处理', r.statusCode === 200 && JSON.parse(r.body).ok === true);
+  r = await relay.main_handler({ httpMethod: 'POST', headers: { 'x-forwarded-for': '10.9.9.11' },
+    code: 'maitian-2017', type: 'scores', payload: goodScores.payload }, {});
+  check('字段被铺平在 event 上：也能处理', r.statusCode === 200 && JSON.parse(r.body).ok === true);
+  r = await relay.main_handler({ httpMethod: 'POST', headers: { 'content-type': 'text/plain;charset=UTF-8', 'x-forwarded-for': '10.9.9.12' },
+    body: JSON.stringify(goodScores) }, {});
+  check('Content-Type 是 text/plain 也照收（客户端靠这个绕开跨域预检）', r.statusCode === 200);
+
   console.log('\n② 写到哪、怎么写（只新增、不覆盖）');
   const last = puts[puts.length - 1];
   check('写到 data/inbox/ 下的 .json', /\/contents\/data\/inbox\/\d{14}-[a-z0-9]+\.json$/.test(last.url), last.url.slice(-40));

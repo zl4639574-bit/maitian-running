@@ -1,10 +1,14 @@
 ════════════════════════════════════════════════════════════
-  这段就是要粘进云函数的代码（Node.js 18）—— 三个平台通用
+  这段就是要粘进云函数的代码（Node.js 18）
   ------------------------------------------------------------------
-  怎么用：控制台新建云函数（Node.js 18）→ 在线编辑 → Ctrl+A 全选删掉默认代码
-          → 打开本文件 Ctrl+A 全选复制 → Ctrl+V 粘贴 → 保存/部署
-  配套：同目录 部署说明.txt（三种平台怎么建、环境变量填什么）
-  ⚠ 代码一个字都不用改；要改的只有环境变量那 5 个值。
+  腾讯云按量方案（当前推荐）：云函数 SCF + 触发器选「函数 URL」
+    · 新建函数（Node.js 18）→ 在线编辑 → Ctrl+A 全选删掉默认代码 → 粘贴本文件全部内容 → 保存
+    · 配置 → 环境变量：GH_TOKEN / GH_OWNER / GH_REPO / GH_BRANCH / TEAM_CODE（超时 20 秒）
+    · 触发管理 → 新建触发器 →「函数 URL」→ 认证方式「无认证」→ 请求方法 POST（能勾 OPTIONS 也勾）
+    · 拿到 https://xxxx.tencentscf.com 地址 → 填进队长版「数据管理 → 同步 → 收件中转」
+    · 详细步骤见同目录 部署说明.txt（方案 A）
+  其他平台也通用（CloudBase HTTP 访问服务 / 阿里云函数计算 FC / API 网关），代码一个字不用改。
+  ⚠ 只有环境变量那 5 个值需要填；代码里的数字（200KB、每分钟 5 次等）不用改。
 ════════════════════════════════════════════════════════════
 
 （↓ 从这里开始全选复制 ↓）
@@ -86,8 +90,11 @@ async function httpHandle(req, env) {
   if (method !== 'POST') return { statusCode: 405, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '只接受 POST' }) };
 
   let body;
-  try { body = JSON.parse(s(req.body) || '{}'); }
-  catch (e) { return { statusCode: 400, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '提交内容不是合法 JSON' }) }; }
+  try {
+    const raw = req.body;
+    body = (raw && typeof raw === 'object') ? raw : JSON.parse(s(raw) || '{}');
+    if (body && body.code === undefined && req.code !== undefined) body.code = req.code;   // 有的平台把字段铺平
+  } catch (e) { return { statusCode: 400, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '提交内容不是合法 JSON' }) }; }
 
   const ip = s(req.headers && (req.headers['x-forwarded-for'] || req.headers['X-Forwarded-For'])).split(',')[0] || 'unknown';
   const now = Date.now();
@@ -131,13 +138,16 @@ async function httpHandle(req, env) {
   return { statusCode: 500, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '提交失败，稍后重试' }) };
 }
 
-/** 从各平台的 event 里取出 method / headers / body */
+/** 从各平台的 event 里取出 method / headers / body（尽量宽容，兼容函数URL/API网关/CloudBase/FC/Web函数） */
 function fromEvent(event) {
   const e = event || {};
-  const method = e.httpMethod || (e.requestContext && e.requestContext.httpMethod) ||
+  const method = e.httpMethod || e.method || (e.requestContext && e.requestContext.httpMethod) ||
     (e.requestContext && e.requestContext.http && e.requestContext.http.method) || 'POST';
-  const raw = e.isBase64Encoded ? Buffer.from(e.body || '', 'base64').toString('utf8') : (e.body || '{}');
-  return { method, headers: e.headers || {}, body: raw };
+  let raw;
+  if (e.isBase64Encoded && typeof e.body === 'string') raw = Buffer.from(e.body, 'base64').toString('utf8');
+  else if (e.body == null) raw = JSON.stringify(e);            // 有的平台直接把请求体解析好铺在 event 上
+  else raw = e.body;                                           // 字符串或对象
+  return { method: method, headers: e.headers || (e.requestContext && e.requestContext.headers) || {}, body: raw };
 }
 
 /* ---------- 腾讯云函数 SCF（API 网关触发器）---------- */

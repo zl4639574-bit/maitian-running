@@ -75,8 +75,11 @@ async function httpHandle(req, env) {
   if (method !== 'POST') return { statusCode: 405, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '只接受 POST' }) };
 
   let body;
-  try { body = JSON.parse(s(req.body) || '{}'); }
-  catch (e) { return { statusCode: 400, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '提交内容不是合法 JSON' }) }; }
+  try {
+    const raw = req.body;
+    body = (raw && typeof raw === 'object') ? raw : JSON.parse(s(raw) || '{}');
+    if (body && body.code === undefined && req.code !== undefined) body.code = req.code;   // 有的平台把字段铺平
+  } catch (e) { return { statusCode: 400, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '提交内容不是合法 JSON' }) }; }
 
   const ip = s(req.headers && (req.headers['x-forwarded-for'] || req.headers['X-Forwarded-For'])).split(',')[0] || 'unknown';
   const now = Date.now();
@@ -120,13 +123,16 @@ async function httpHandle(req, env) {
   return { statusCode: 500, headers: corsHeaders(), body: JSON.stringify({ ok: false, error: '提交失败，稍后重试' }) };
 }
 
-/** 从各平台的 event 里取出 method / headers / body */
+/** 从各平台的 event 里取出 method / headers / body（尽量宽容，兼容函数URL/API网关/CloudBase/FC/Web函数） */
 function fromEvent(event) {
   const e = event || {};
-  const method = e.httpMethod || (e.requestContext && e.requestContext.httpMethod) ||
+  const method = e.httpMethod || e.method || (e.requestContext && e.requestContext.httpMethod) ||
     (e.requestContext && e.requestContext.http && e.requestContext.http.method) || 'POST';
-  const raw = e.isBase64Encoded ? Buffer.from(e.body || '', 'base64').toString('utf8') : (e.body || '{}');
-  return { method, headers: e.headers || {}, body: raw };
+  let raw;
+  if (e.isBase64Encoded && typeof e.body === 'string') raw = Buffer.from(e.body, 'base64').toString('utf8');
+  else if (e.body == null) raw = JSON.stringify(e);            // 有的平台直接把请求体解析好铺在 event 上
+  else raw = e.body;                                           // 字符串或对象
+  return { method: method, headers: e.headers || (e.requestContext && e.requestContext.headers) || {}, body: raw };
 }
 
 /* ---------- 腾讯云函数 SCF（API 网关触发器）---------- */
