@@ -179,7 +179,9 @@ function ov() {
     relay: l.relay || c.relay || null,          // 成绩/资料收件中转（队员端据此直传）
     honors: l.honors || c.honors || null,
     activities: l.activities || c.activities || null,
-    hidden: Array.from(new Set((c.hidden || []).concat(l.hidden || []))),
+    // 本机"恢复显示"的人（shown）优先：从隐藏集合里剔除，这样同步后所有人也看得到
+    hidden: Array.from(new Set((c.hidden || []).concat(l.hidden || [])))
+      .filter(n => (l.shown || []).indexOf(n) < 0),
     memberEdits: Object.assign({}, c.memberEdits || {}, l.memberEdits || {}),
     newMembers: (function () {
       const m = {};
@@ -1217,6 +1219,15 @@ function renderManage() {
           列名认「姓名 / 性别 / 学院 / 专业 / 年级 / 800米 / 1500米 / 3000米 / 5000米 / 10000米 / 半马 / 全马」，
           「提交时间」「填写人」之类的列会自动忽略；没有的距离填「无」即可。</span>
         <div id="docSheetArea" style="flex-basis:100%"></div>
+        ${(() => {
+          const hid = ov().hidden || [];
+          if (!hid.length) return '';
+          return `<div class="notice" style="flex-basis:100%;margin-top:12px">
+            <b>已隐藏 ${hid.length} 人</b>（不在名册和榜单里显示，所以搜不到、也改不了他们的信息）：
+            <div style="margin-top:6px">${hid.map(n => `<span style="display:inline-block;margin:4px 10px 0 0;white-space:nowrap">${esc(n)}<button class="btn flat sm" style="margin-left:6px" data-unhide="${esc(n)}">恢复显示</button></span>`).join('')}</div>
+            <div class="tiny" style="margin-top:6px">点「恢复显示」后，点「同步我的修改到线上」，他就会回到名册里（名单口径跟着变）。</div>
+          </div>`;
+        })()}
         <input type="file" id="docFile" accept=".json,.txt,.csv" style="display:none">
         <span class="tiny" style="flex-basis:100%">队员在「成绩上报 → 完善我的资料」里导出的 .json 小文件（连照片一起）直接选进来；
           队员发来的一段文字也可以粘在下面（每行「字段 值」，Tab 或冒号分隔，和导出的文本一致）。</span>
@@ -3203,6 +3214,16 @@ function renderNmBatch() {
 }
 
 function bindManage() {
+
+  $$('[data-unhide]').forEach(b => b.onclick = () => {
+    const n = b.dataset.unhide;
+    const l = ovLocal();
+    l.shown = Array.from(new Set((l.shown || []).concat([n])));
+    if ((l.hidden || []).indexOf(n) >= 0) l.hidden = l.hidden.filter(x => x !== n);
+    saveLocalOv();
+    toast('已恢复显示「' + n + '」：他会出现回名册里。记得点「同步我的修改到线上」', 11000);
+    render();
+  });
 
   const sF = $('#docSheetFile'), sI = $('#btnDocSheet');
   if (sI && sF) sI.onclick = () => sF.click();
