@@ -796,7 +796,7 @@ function renderRoster() {
       <option value="">全部学院</option>
       ${colleges.map(c => `<option value="${esc(c)}" ${state.rosterCollege === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
     </select>
-    <input type="search" id="rosterQ" placeholder="搜姓名 / 学院 / 专业" value="${esc(state.rosterQ)}">
+    <input type="search" id="rosterQ" placeholder="搜姓名 / 学院 / 专业" autocomplete="off" value="${esc(state.rosterQ)}">
   </div>
 
   <div class="grid-cards">
@@ -854,9 +854,8 @@ function renderUpload() {
         `<div class="chip ${i === 0 ? 'active' : ''}" data-ty="${esc(t)}">${esc(t)}</div>`).join('')}
     </div>
     <div class="grid2" style="margin-bottom:14px">
-      <div class="field"><label>姓名 *</label><input id="f_name" placeholder="例如 张津浩" list="nameList">
-        <datalist id="nameList">${rosterList().map(m => `<option value="${esc(m.name)}">`).join('')}</datalist>
-      </div>
+      <div class="field"><label>姓名 *</label><input id="f_name" placeholder="直接输入姓名，例如 张津浩" autocomplete="off">
+        <div class="tiny" id="f_nameHint" style="margin-top:4px"></div></div>
       <div class="field"><label>项目 / 距离 *</label><input id="f_event" placeholder="5000米 / 半马 / 全马" list="evList" value="5000米">
         <datalist id="evList">${['1500米', '3000米', '5000米', '10000米', '4公里', '12公里', '16公里', '半马', '全马']
           .map(e => `<option value="${e}">`).join('')}</datalist>
@@ -1208,7 +1207,7 @@ function renderManage() {
   ${state.manageSec === 'member' ? `
   <div class="card sec">
     <div class="sec-head"><h2>队员名册管理</h2>
-      <input type="search" id="mRosterQ" placeholder="搜姓名" value="${esc(state.mRosterQ)}" class="inp-inline">
+      <input type="search" id="mRosterQ" placeholder="搜姓名" autocomplete="off" value="${esc(state.mRosterQ)}" class="inp-inline">
     </div>
     <div class="tiny" style="margin-bottom:12px">
       原始名册 ${ros.length} 人${(o.newMembers || []).length ? '，队长新增 ' + (o.newMembers || []).length + ' 人' : ''}
@@ -1263,13 +1262,12 @@ function renderManage() {
         「个人最好成绩」榜（只统计正式队员）和该队员的名册卡片上；加完点「同步我的修改到线上」即上线。
       </div>
       <div class="grid2" style="margin:10px 0 4px">
-        <div class="field"><label>姓名 *</label><input id="pb_name" list="pbNames" placeholder="例如 阿巴小洛"></div>
+        <div class="field"><label>姓名 *</label><input id="pb_name" autocomplete="off" placeholder="直接输入姓名，例如 阿巴小洛"></div>
         <div class="field"><label>项目 *</label><input id="pb_event" list="pbEvents" placeholder="例如 半马"></div>
         <div class="field"><label>成绩 *</label><input id="pb_time" placeholder="1:23:29 或 17:02"></div>
         <div class="field"><label>日期</label><input id="pb_date" placeholder="2025.4.21"></div>
         <div class="field"><label>赛事 / 备注</label><input id="pb_note" placeholder="杨凌马拉松"></div>
       </div>
-      <datalist id="pbNames">${(BASE.roster || []).map(m => '<option value="' + esc(m.name) + '"></option>').join('')}</datalist>
       <datalist id="pbEvents">${Array.from(new Set(allResults().map(r => r.event).filter(Boolean))).map(e => '<option value="' + esc(e) + '"></option>').join('')}</datalist>
       <button class="btn" id="btnAddPb">添加这条成绩</button>
       <span class="tiny" style="margin-left:10px">加完点「同步我的修改到线上」发布</span>
@@ -1594,7 +1592,24 @@ function goTab(tab, extra) {
 let pendingFile = null, importCfg = null;
 const IMPORT_EVENTS = ['5000米', '3000米', '1500米', '10000米', '4公里', '12公里', '16公里', '半马', '全马', '其他'];
 
+/** 这个名字队里认识吗（原始名册里任何身份的人 + 队长新增的人）
+    用途：姓名输入框不再给下拉提示之后，用来轻声提醒"是不是写错字了" —— 不是推荐列表 */
+function nameKnownToTeam(name) {
+  const n = String(name || '').trim();
+  if (!n) return true;
+  if ((BASE.roster || []).some(m => m.name === n)) return true;
+  return (ov().newMembers || []).some(m => m.name === n);
+}
+
 function bindUpload() {
+  const fn = $('#f_name');            // 姓名不再给下拉提示：自己打字，只在"名册里没有"时轻声提醒一下
+  if (fn) fn.oninput = () => {
+    const box = $('#f_nameHint');
+    if (!box) return;
+    const v = String(fn.value || '').trim();
+    box.textContent = nameKnownToTeam(v) ? ''
+      : '⚠️ 名册里没有这个名字 —— 核对一下别写错字（写错队长那边会当成另一个人；跑团朋友、外校同学可以不管）';
+  };
   const add = $('#btnAdd');
   if (add) add.onclick = () => {
     const name = ($('#f_name').value || '').trim();
@@ -1989,9 +2004,8 @@ function renderMe() {
   <div class="card sec">
     <h2>① 基本信息</h2>
     <div class="grid2" style="margin-bottom:14px">
-      <div class="field"><label>姓名 *</label><input id="me_name" value="${esc(d.name || '')}" list="meNameList" placeholder="例如 张津浩">
-        <datalist id="meNameList">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
-        <div class="tiny" style="margin-top:4px">${d.name ? (inRoster ? '✅ 在名册里，队长会更新你的资料' : '❓ 名册里还没有这个名字，队长会新增一位') : '开始输入姓名'}</div>
+      <div class="field"><label>姓名 *</label><input id="me_name" value="${esc(d.name || '')}" autocomplete="off" placeholder="直接输入你的姓名，例如 张津浩">
+        <div class="tiny" style="margin-top:4px">${d.name ? (inRoster ? '✅ 在名册里，队长会更新你的资料' : '⚠️ 名册里没有这个名字 —— 核对一下别写错字（写错队长那边会变成新增一个人）') : '直接打字输入姓名'}</div>
       </div>
       <div class="field"><label>性别</label><select id="me_sex">
         ${['', '男', '女'].map(v => `<option value="${v}" ${(d.sex || '') === v ? 'selected' : ''}>${v || '未填'}</option>`).join('')}
@@ -3650,6 +3664,11 @@ function bindManage() {
     if (!name) return toast('请填姓名');
     if (!event) return toast('请填项目（例如 半马 / 5000米 / 全马）');
     if (!sec) return toast('成绩认不出：可写 1:23:29（时:分:秒）或 17:02（分:秒）', 8000);
+    const known = nameKnownToTeam(name);
+    const inPbBoard = rosterList().some(m => m.name === name);
+    if (!known && !confirm('名册里没有「' + name + '」这个人。\n\n姓名写错的话，这条成绩谁都不会看到。\n\n确定就用「' + name + '」记下这条吗？')) return;
+    if (known && !inPbBoard && !confirm('「' + name + '」在名册里，但身份不是「正式」。\n\n' +
+        '个人最好成绩榜只统计正式队员，所以这条成绩不会出现在榜上（名册卡片上也看不到）。\n\n仍然记下这条吗？')) return;
     const l = ovLocal();
     l.pbAdded = l.pbAdded || [];
     l.pbAdded.push({ uid: pbUid(), name: name, event: event, sec: sec, fmt: fmtSec(sec),
