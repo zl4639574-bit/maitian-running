@@ -562,7 +562,25 @@ window.TEAM_OVERRIDES = {
    "records": []
   }
  ],
- "compRecords": {},
+ "compRecords": {
+  "cmu14r7vj": [
+   {
+    "uid": "rmu1x1yos_1_5n85",
+    "name": "李志宏",
+    "event": "半马",
+    "raw": "1：23:29",
+    "sec": 5009,
+    "fmt": "1:23:29",
+    "sex": "男",
+    "college": "林学院",
+    "date": "2025.4.13",
+    "rank": "",
+    "meet": "",
+    "ts": 1789431065308,
+    "note": ""
+   }
+  ]
+ },
  "hiddenRecords": [],
  "hall": [],
  "queue": null,
@@ -652,5 +670,5 @@ window.TEAM_OVERRIDES = {
    "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-14T23:40:24.000Z"
+ "updated": "2026-09-15T00:11:24.324Z"
 };
