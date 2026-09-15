@@ -1004,8 +1004,16 @@ function renderManage() {
     .concat((LOCAL_OV && LOCAL_OV.photos) || []);
   const localPendIds = new Set(((LOCAL_OV && LOCAL_OV.photos) || []).map(photoId));
   const hiddenIds = o.hiddenPhotos || [];
-  wallList = allPhotosWall.filter(p => hiddenIds.indexOf(photoId(p)) < 0 && !localPendIds.has(photoId(p)));
-  removedList = allPhotosWall.filter(p => hiddenIds.indexOf(photoId(p)) >= 0);
+  // 排序：页面上传的（up_ 开头）排前面、新的在前，原始资料里的照片排后面 —— 想删刚传错的那张不用翻 44 张
+  const photoOrder = (a, b) => {
+    const ua = (String(a.file || '').indexOf('up_') === 0) ? 1 : 0;
+    const ub = (String(b.file || '').indexOf('up_') === 0) ? 1 : 0;
+    if (ua !== ub) return ub - ua;
+    return String(b.albumDate || '').localeCompare(String(a.albumDate || ''))
+        || String(b.file || '').localeCompare(String(a.file || ''));
+  };
+  wallList = allPhotosWall.filter(p => hiddenIds.indexOf(photoId(p)) < 0 && !localPendIds.has(photoId(p))).sort(photoOrder);
+  removedList = allPhotosWall.filter(p => hiddenIds.indexOf(photoId(p)) >= 0).sort(photoOrder);
 
   return `
   <div class="sec-head"><h1>数据管理</h1>
@@ -3948,7 +3956,10 @@ function bindManage() {
     const l = ovLocal();
     const pend = (l.photos || []).some(x => photoId(x) === id);
     if (pend) l.photos = (l.photos || []).filter(x => photoId(x) !== id);
-    else l.hiddenPhotos = (l.hiddenPhotos || []).concat([id]);
+    else {
+      l.hiddenPhotos = (l.hiddenPhotos || []).concat([id]).filter((x, i, a) => a.indexOf(x) === i);
+      l.shownPhotos = (l.shownPhotos || []).filter(x => x !== id);   // 和「恢复显示」互斥，否则删了不动
+    }
     saveLocalOv();
     toast(pend ? '已从「还没同步的照片」里删掉这张' 
                : '已从照片墙移除：' + id + ' —— 点「同步我的修改到线上」，线上和展示版就都没了', 12000);

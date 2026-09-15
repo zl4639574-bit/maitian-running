@@ -121,12 +121,14 @@ def main():
         r4 = read()
         print("④ 点了一张的「删」：", json.dumps({k: r4[k] for k in ('wall', 'removed', 'hidden')}, ensure_ascii=False),
               "｜本机 hiddenPhotos =", json.dumps(r4["local"].get("hiddenPhotos"), ensure_ascii=False))
-        ok4 = (r4["removed"] == 1 and r4["wall"] == before - 1 and len(r4["local"].get("hiddenPhotos") or []) == 1)
+        ok4 = (r4["removed"] == 1 and r4["wall"] == before - 1
+               and len(r4["local"].get("hiddenPhotos") or []) == 1
+               and (r4["local"].get("shownPhotos") or []) == [])   # 删要和「恢复显示」互斥，否则点了没反应
 
         # ⑤ 待同步提示数（pendingCount）认得这处改动
         pend = c.js("(typeof pendingCount==='function') ? pendingCount() : -1")
         print("⑤ 待同步处数 =", pend)
-        ok5 = int(pend or 0) >= 2        # hiddenPhotos 1 处 + shownPhotos 1 处
+        ok5 = int(pend or 0) >= 1        # hiddenPhotos 1 处（照片的删/恢复算待同步改动）
 
         # ⑥ 同步时写进 data/overrides.js 的 hiddenPhotos / shownPhotos（把 GitHub 那一层换成假的，只验载荷）
         c.js("localStorage.setItem('mt_gh_cfg_v1', JSON.stringify({owner:'zl4639574-bit',repo:'maitian-running',branch:'master',token:'TESTTOKEN'})); 'ok'")
