@@ -1991,6 +1991,62 @@ function bindMe() {
 }
 
 /** 照片压到 360px、JPEG 0.82，存成 dataURL（几十 KB） */
+/* ---------------- iPhone HEIC 照片支持（内置解码器，按需加载） ----------------
+   iPhone 直接拍的照片是 HEIC，浏览器不认（就是"打不开"那种）。这里用 libheif 现解：
+     · 只在真的选到 HEIC 时才去加载 assets/libheif-bundle.js（1.4MB，本地文件，离线可用）；
+     · 解出来转成 JPEG 再走原来的压缩/上传流程，队员什么都不用做。 */
+let _heifLoading = null;
+function isHeicBytes(buf) {
+  if (!buf || buf.byteLength < 12) return false;
+  const b = new Uint8Array(buf, 0, 12);
+  if (String.fromCharCode(b[4], b[5], b[6], b[7]) !== 'ftyp') return false;
+  // 只要是 ISO-BMFF 容器（HEIC/HEIF/AVIF 都是）就先当 HEIC 试解一次：brand 字段各手机厂商写法不一
+  const brand = String.fromCharCode(b[8], b[9], b[10], b[11]).toLowerCase();
+  if (['mp41', 'mp42', 'isom', 'iso2', 'qt  '].indexOf(brand) >= 0) return false;   // 这些是普通视频/其它容器
+  return true;
+}
+function loadHeifLib() {
+  if (window.libheif) return Promise.resolve(window.libheif);
+  if (_heifLoading) return _heifLoading;
+  _heifLoading = new Promise((res, rej) => {
+    const sc = document.createElement('script');
+    sc.src = ROOT + 'assets/libheif-bundle.js';
+    sc.onload = () => window.libheif ? res(window.libheif) : rej(new Error('解码器加载了但没挂上'));
+    sc.onerror = () => { _heifLoading = null; rej(new Error('解码器没加载成功')); };
+    document.head.appendChild(sc);
+  });
+  return _heifLoading;
+}
+/** HEIC → JPEG 的 dataURL；不是 HEIC 返回 null（调用方继续走原流程） */
+async function heicToJpegDataUrl(file) {
+  const head = await file.slice(0, 16).arrayBuffer();
+  if (!isHeicBytes(head)) return null;
+  toast('这是 iPhone 的 HEIC 照片，正在自动转成 JPG…', 9000);
+  const lib = await loadHeifLib();
+  const data = new Uint8Array(await file.arrayBuffer());
+  const imgs = new lib.HeifDecoder().decode(data);
+  if (!imgs || !imgs.length) throw new Error('这张 HEIC 解不开');
+  const im = imgs[0];
+  const w = im.get_width(), h = im.get_height();
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  const idt = ctx.createImageData(w, h);
+  await new Promise((res, rej) => im.display(idt, (err) => err ? rej(err) : res()));
+  ctx.putImageData(idt, 0, 0);
+  return cv.toDataURL('image/jpeg', 0.82);
+}
+/** 统一的取图入口：HEIC 走解码器，其它原样交给 FileReader */
+function feedPhoto(f, fr, onFail) {
+  (async () => {
+    try {
+      const conv = await heicToJpegDataUrl(f);
+      if (conv) { fr.onload({ target: { result: conv } }); return; }
+    } catch (e) { if (onFail) onFail(e); else toast('这张 HEIC 转不了：' + (e && e.message) + '（可以先在相册里转成 JPG）', 11000); return; }
+    feedPhoto(f, fr, () => { bad.push(f.name); finish(); });
+  })();
+}
+
 function shrinkPhoto(file) {
   const fr = new FileReader();
   fr.onload = () => {
@@ -2011,7 +2067,7 @@ function shrinkPhoto(file) {
     img.onerror = () => toast('这张图读不了，换一张试试');
     img.src = fr.result;
   };
-  fr.readAsDataURL(file);
+  feedPhoto(file, fr, () => toast("这张 HEIC 转不了（可以先用相册转成 JPG 再传）", 11000));
 }
 
 /* ---------------- 赛事名匹配（上报时自动对到已有赛事）---------------- */
@@ -3737,7 +3793,7 @@ function handlePhotos(files) {
     const parts = [];
     if (ok) parts.push('已加入 ' + ok + ' 张到「' + album + '」' + (direct ? '（已直接传到线上，再点「同步」照片墙就显示）' : '（待同步）'));
     if (bad.length) parts.push(bad.length + ' 张打不开被跳过：' + bad.slice(0, 2).join('、') + (bad.length > 2 ? ' 等' : '')
-      + ' —— iPhone 的 HEIC 格式浏览器认不了，先在手机相册里转成 JPG（或微信发给自己会自动转码）再传');
+      + ' —— 这些是 iPhone 的 HEIC 照片，页面会自动转换；如果是网络太慢没加载好解码器，稍后重试一次就行');
     if (full) parts.push(full + ' 张没存住：本机存储满了，先点「同步」把已有照片传到线上腾出空间');
     if (skipped) parts.push(skipped + ' 个文件不是图片，已跳过');
     toast(parts.join('；') || '没有可用的图片', 12000);
@@ -3782,7 +3838,7 @@ function handlePhotos(files) {
       };
       img.src = fr.result;
     };
-    fr.readAsDataURL(f);
+    feedPhoto(f, fr, () => { bad.push(f.name); finish(); });
   });
 }
 
