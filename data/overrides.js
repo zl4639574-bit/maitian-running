@@ -781,7 +781,37 @@ window.TEAM_OVERRIDES = {
    "albumDate": "2026",
    "file": "up_1789389670087_0.jpg",
    "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "26年杨马",
+   "albumDate": "2026",
+   "file": "up_1789455145417_4.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "26年杨马",
+   "albumDate": "2026",
+   "file": "up_1789455145455_10.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789455175354_7.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789455175533_12.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
+  },
+  {
+   "album": "2026年校运会",
+   "albumDate": "2026",
+   "file": "up_1789455175316_8.jpg",
+   "caption": "NR8AVjViQ1FBMk5qRT"
   }
  ],
- "updated": "2026-09-15T06:47:14.376Z"
+ "updated": "2026-09-15T07:08:31.230Z"
 };
