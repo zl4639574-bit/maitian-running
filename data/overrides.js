@@ -584,7 +584,20 @@ window.TEAM_OVERRIDES = {
    "photo": "images/avatars/me0kg.jpg"
   }
  },
- "newMembers": [],
+ "newMembers": [
+  {
+   "uid": "nmmu3wjk1kgs5z",
+   "name": "付游",
+   "sex": "",
+   "college": "",
+   "major": "",
+   "grade": "",
+   "level": [
+    "正式"
+   ],
+   "addedAt": "2026-09-16"
+  }
+ ],
  "results": [
   {
    "uid": "rmu22vglv_1_gf2r",
@@ -1475,5 +1488,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T08:46:42.977Z"
+ "updated": "2026-09-16T09:32:35.055Z"
 };
