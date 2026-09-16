@@ -26,6 +26,13 @@ window.APP_ROOT = '../';
   function boot() {
     var a = document.createElement('script');
     a.src = R + 'assets/app.js?t=' + Date.now();
+    a.onload = function () {
+      // 待审台：app.js 就绪后再挂上审核层（独立文件，不修改 app.js）
+      if (window.__mtInboxReview) return;
+      var x = document.createElement('script');
+      x.src = R + 'assets/inbox-review.js?t=' + Date.now();
+      document.head.appendChild(x);
+    };
     document.head.appendChild(a);
   }
   files.forEach(function (f) {
