@@ -3221,6 +3221,7 @@ function pendingCount() {
   if (l.pbHidden) n += l.pbHidden.length;
   if (l.hall) n += 1;
   if (l.queue) n += 1;
+  if (l.relay) n += 1;          // ★ 收件中转设置也是一项「本机待同步」，不算进去的话「同步」按钮永远是灰的
   return n;
 }
 function saveLocalOv() {
@@ -3795,6 +3796,7 @@ function bindManage() {
     const code = ($('#rlCode') || {}).value ? $('#rlCode').value.trim() : '';
     if (!url) { delete l.relay; } else { l.relay = { url: url, code: code }; }
     saveLocalOv();
+    const bp = $('#btnPush'); if (bp) bp.disabled = false;   // ★ 让「同步我的修改到线上」立刻变成可点，不用刷新页面
     toast(url ? '已保存收件设置（记得点「同步我的修改到线上」队员端才会生效）' : '已清空收件设置', 9000);
   };
   const rTs = $('#btnRelayTest');
@@ -4711,6 +4713,10 @@ async function pushToGitHub() {
         .filter(id => ((l.shownPhotos || []).indexOf(id) < 0)),
       shownPhotos: (l.shownPhotos || []),
       hall: (l.hall || cloud.hall || null),
+      // ★ 2026-09-16 修：这里原来漏了 relay。merged 是「白名单式重建」，
+      //   没列出来的字段会被整段丢掉 —— 于是每次同步都把收件设置抹了，
+      //   队员端的「⚡ 直接提交给队长」就再也不出现。
+      relay: l.relay || cloud.relay || null,
       queue: null,          // 令牌绝不写进仓库（GitHub 密钥扫描会拦截，也不安全）
       photos: (cloud.photos || []).concat((l.photos || []).map(p => {
         const { data, size, ...rest } = p;
