@@ -1,4 +1,3 @@
-/* 由队长版写入 */
 window.TEAM_OVERRIDES = {
  "team": {},
  "honors": null,
@@ -980,6 +979,71 @@ window.TEAM_OVERRIDES = {
    "ts": 1789483129916,
    "sex": "女",
    "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3pih8v_1_shol",
+   "name": "罗胜文",
+   "event": "1500米",
+   "sec": 270,
+   "fmt": "4:30",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789539331279,
+   "sex": "男",
+   "college": "园艺学院"
+  },
+  {
+   "uid": "rmu3pih8v_2_pkuc",
+   "name": "罗胜文",
+   "event": "3000米",
+   "sec": 624,
+   "fmt": "10:24",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789539331279,
+   "sex": "男",
+   "college": "园艺学院"
+  },
+  {
+   "uid": "rmu3pih8v_3_i0yn",
+   "name": "罗胜文",
+   "event": "5000米",
+   "sec": 1056,
+   "fmt": "17:36",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789539331279,
+   "sex": "男",
+   "college": "园艺学院"
+  },
+  {
+   "uid": "rmu3pih8v_4_7xsj",
+   "name": "罗胜文",
+   "event": "10000米",
+   "sec": 2268,
+   "fmt": "37:48",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789539331279,
+   "sex": "男",
+   "college": "园艺学院"
+  },
+  {
+   "uid": "rmu3pih8v_5_n2c4",
+   "name": "罗胜文",
+   "event": "半马",
+   "sec": 5480,
+   "fmt": "1:31:20",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789539331279,
+   "sex": "男",
+   "college": "园艺学院"
   }
  ],
  "pbHidden": [
@@ -1170,5 +1234,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T06:13:44.000Z"
+ "updated": "2026-09-16T06:15:33.328Z"
 };
