@@ -575,9 +575,6 @@ window.TEAM_OVERRIDES = {
    "major": "生物拔尖基地班2501",
    "grade": "2025",
    "photo": "images/avatars/mdu7ja.jpg"
-  },
-  "付游": {
-   "photo": "images/avatars/me0kg.jpg"
   }
  },
  "newMembers": [],
@@ -595,6 +592,32 @@ window.TEAM_OVERRIDES = {
    "rank": "",
    "meet": "2025年杨凌农科城马拉松赛",
    "ts": 1789440839636,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu3uhz7q_23_m5vk",
+   "name": "付游",
+   "event": "5000米",
+   "sec": 1064,
+   "fmt": "17:44",
+   "date": "2026.09.15",
+   "meet": "",
+   "rank": "",
+   "ts": 1789547705990,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu3uhz7q_24_gmt3",
+   "name": "付游",
+   "event": "半马",
+   "sec": 4796,
+   "fmt": "1:19:56",
+   "date": "2025.4.14",
+   "meet": "2025年杨凌农科城马拉松赛",
+   "rank": "大学组21",
+   "ts": 1789547705990,
    "local": false,
    "published": true
   }
@@ -1047,84 +1070,6 @@ window.TEAM_OVERRIDES = {
    "ts": 1789539331279,
    "sex": "男",
    "college": "园艺学院"
-  },
-  {
-   "uid": "rmu3uhqbn_17_c8ye",
-   "name": "付游",
-   "event": "800米",
-   "sec": 129,
-   "fmt": "2:09",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789547694467,
-   "sex": "",
-   "college": ""
-  },
-  {
-   "uid": "rmu3uhqbn_18_buj6",
-   "name": "付游",
-   "event": "1500米",
-   "sec": 272,
-   "fmt": "4:32",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789547694467,
-   "sex": "",
-   "college": ""
-  },
-  {
-   "uid": "rmu3uhqbn_19_giqf",
-   "name": "付游",
-   "event": "3000米",
-   "sec": 628,
-   "fmt": "10:28",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789547694467,
-   "sex": "",
-   "college": ""
-  },
-  {
-   "uid": "rmu3uhqbn_20_p74h",
-   "name": "付游",
-   "event": "5000米",
-   "sec": 1064,
-   "fmt": "17:44",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789547694467,
-   "sex": "",
-   "college": ""
-  },
-  {
-   "uid": "rmu3uhqbn_21_awvp",
-   "name": "付游",
-   "event": "10000米",
-   "sec": 2204,
-   "fmt": "36:44",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789547694467,
-   "sex": "",
-   "college": ""
-  },
-  {
-   "uid": "rmu3uhqbn_22_m5c2",
-   "name": "付游",
-   "event": "半马",
-   "sec": 4796,
-   "fmt": "1:19:56",
-   "date": "",
-   "meet": "队员自报",
-   "rank": "",
-   "ts": 1789547694467,
-   "sex": "",
-   "college": ""
   }
  ],
  "pbHidden": [
@@ -1315,5 +1260,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T08:34:55.621Z"
+ "updated": "2026-09-16T08:35:06.956Z"
 };
