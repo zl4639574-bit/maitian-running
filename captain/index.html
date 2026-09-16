@@ -8,6 +8,15 @@
 <title>麦田守望长跑队 · 队长版</title>
 <link rel="icon" href="../images/logo.jpg">
 <link rel="stylesheet" href="../assets/style.css?v=4">
+<style>
+/* 队长版口令门（见 assets/captain-lock.js）。放在队长版自己的页面里，
+   不动公共样式表 —— 展示版和上报页完全看不到这段东西。 */
+.mt-lock{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(250,250,247,.94);backdrop-filter:blur(3px)}
+.mt-lock .card{box-shadow:0 10px 40px rgba(47,107,57,.12)}
+html.mt-locked body{overflow:hidden}
+html.mt-locked .nav,html.mt-locked .wrap{visibility:hidden}
+</style>
 </head>
 <body>
 
@@ -15,11 +24,17 @@
 <div class="wrap" id="page"></div>
 <div class="toast" id="toast"></div>
 
+<div class="mt-lock" id="mtLockGate"><div class="card" style="max-width:430px;width:100%;padding:22px"><div id="mtLockBody"></div></div></div>
+
+<script src="../assets/captain-lock.js"></script>
 <script>
 /* 队长版：批量导入、比赛成绩管理、照片上传、队伍信息修改、一键同步到线上 */
 window.APP_MODE = 'captain';
 window.APP_ROOT = '../';
-(function () {
+
+/* 真正的启动入口。为什么改成一个函数：要先让「口令门」过一遍（见 assets/captain-lock.js）。
+   没设口令 / 已过门 → captain-lock.js 立刻调用它，行为和以前一模一样。 */
+window.__mtBootApp = function () {
   var R = window.APP_ROOT;
   var files = [R + 'assets/xlsx.full.min.js', R + 'data/team-data.js', R + 'images/photos.js', R + 'data/overrides.js'];
   var n = 0;
@@ -41,7 +56,7 @@ window.APP_ROOT = '../';
     s.onload = s.onerror = function () { if (++n === files.length) boot(); };
     document.head.appendChild(s);
   });
-})();
+};
 </script>
 </body>
 </html>
