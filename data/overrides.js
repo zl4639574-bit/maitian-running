@@ -575,6 +575,13 @@ window.TEAM_OVERRIDES = {
    "major": "生物拔尖基地班2501",
    "grade": "2025",
    "photo": "images/avatars/mdu7ja.jpg"
+  },
+  "付游": {
+   "sex": "男",
+   "college": "信息工程学院",
+   "major": "计科2405",
+   "grade": "2024",
+   "photo": "images/avatars/me0kg.jpg"
   }
  },
  "newMembers": [],
@@ -592,32 +599,6 @@ window.TEAM_OVERRIDES = {
    "rank": "",
    "meet": "2025年杨凌农科城马拉松赛",
    "ts": 1789440839636,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu3uhz7q_23_m5vk",
-   "name": "付游",
-   "event": "5000米",
-   "sec": 1064,
-   "fmt": "17:44",
-   "date": "2026.09.15",
-   "meet": "",
-   "rank": "",
-   "ts": 1789547705990,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu3uhz7q_24_gmt3",
-   "name": "付游",
-   "event": "半马",
-   "sec": 4796,
-   "fmt": "1:19:56",
-   "date": "2025.4.14",
-   "meet": "2025年杨凌农科城马拉松赛",
-   "rank": "大学组21",
-   "ts": 1789547705990,
    "local": false,
    "published": true
   }
@@ -1070,6 +1051,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789539331279,
    "sex": "男",
    "college": "园艺学院"
+  },
+  {
+   "uid": "rmu3ui76w_25_p3nz",
+   "name": "付游",
+   "event": "800米",
+   "sec": 129,
+   "fmt": "2:09",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789547716328,
+   "sex": "男",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu3ui76w_26_offu",
+   "name": "付游",
+   "event": "1500米",
+   "sec": 272,
+   "fmt": "4:32",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789547716328,
+   "sex": "男",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu3ui76w_27_2gwd",
+   "name": "付游",
+   "event": "3000米",
+   "sec": 628,
+   "fmt": "10:28",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789547716328,
+   "sex": "男",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu3ui76w_28_e23y",
+   "name": "付游",
+   "event": "5000米",
+   "sec": 1064,
+   "fmt": "17:44",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789547716328,
+   "sex": "男",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu3ui76w_29_pmjc",
+   "name": "付游",
+   "event": "10000米",
+   "sec": 2204,
+   "fmt": "36:44",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789547716328,
+   "sex": "男",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu3ui76w_30_sw24",
+   "name": "付游",
+   "event": "半马",
+   "sec": 4796,
+   "fmt": "1:19:56",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789547716328,
+   "sex": "男",
+   "college": "信息工程学院"
   }
  ],
  "pbHidden": [
@@ -1260,5 +1319,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T08:35:06.956Z"
+ "updated": "2026-09-16T08:35:17.459Z"
 };
