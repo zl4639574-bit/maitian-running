@@ -581,38 +581,6 @@ window.TEAM_OVERRIDES = {
  "newMembers": [],
  "results": [
   {
-   "uid": "rmu114vax_1_vq0n",
-   "name": "李志宏",
-   "event": "半马",
-   "raw": "1:23:29",
-   "sec": 5009,
-   "fmt": "1:23:29",
-   "sex": "男",
-   "college": "林学院",
-   "date": "2025.4.15",
-   "rank": "",
-   "meet": "2025杨凌农科城马拉松赛",
-   "ts": 1789377453177,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu16v607_1_ot0d",
-   "name": "李志宏",
-   "event": "半马",
-   "raw": "1：23.29",
-   "sec": 83.3,
-   "fmt": "1:23",
-   "sex": "男",
-   "college": "林学院",
-   "date": "2025.4.13",
-   "rank": "",
-   "meet": "2025年杨凌农科城马拉松",
-   "ts": 1789387078183,
-   "local": false,
-   "published": true
-  },
-  {
    "uid": "rmu22vglv_1_gf2r",
    "name": "李志宏",
    "event": "半马",
@@ -633,6 +601,7 @@ window.TEAM_OVERRIDES = {
   "rmu114vax_1_vq0n",
   "rmu16v607_1_ot0d"
  ],
+ "shownResults": [],
  "competitions": [
   {
    "id": "cmu14r7vj",
@@ -1032,6 +1001,10 @@ window.TEAM_OVERRIDES = {
  ],
  "shownPhotos": [],
  "hall": [],
+ "relay": {
+  "url": "https://1452663810-5jp3bggvln.ap-guangzhou.tencentscf.com",
+  "code": "maitian"
+ },
  "queue": null,
  "photos": [
   {
@@ -1197,5 +1170,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T14:57:40.211Z"
+ "updated": "2026-09-16T06:13:44.000Z"
 };
