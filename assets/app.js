@@ -4,6 +4,12 @@
    - 展示版：只读，给全队和外面看
    - 队员版：手机可以录自己的成绩
    - 队长版：批量导入、照片上传、队伍信息与名册管理、一键同步到线上
+   ==========================================================================
+   构建标记 BUILD 2026-09-16f · sync-baseline-from-api
+   本次改动：同步（pushToGitHub / 测试同步）的合并基线改走 GitHub 接口。
+   原来读的是 GitHub Pages 上的那份，而 Pages 有最长 10 分钟的缓存 / 构建延时，
+   几十秒内连着同步两次（待审台逐条「通过并上线」就是这样）时，第二次会读到旧文件，
+   把第一次刚写进去的内容整段抹掉。详见 cloudFresh() 的注释。
    ========================================================================== */
 'use strict';
 
@@ -1745,6 +1751,17 @@ function render() {
   if (state.tab === 'me') bindMe();
   if (state.tab === 'manage') bindManage();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  __mtAfterRender();
+}
+
+/** 插件钩子：页面每渲染完一次就通知一遍（插件清单见 assets/plugins.js）
+    插件用 window.__mtHooks.push(fn) 注册自己；没装插件时这里是空操作，不影响任何原有逻辑 */
+function __mtAfterRender() {
+  const hs = window.__mtHooks;
+  if (!hs || !hs.length) return;
+  for (let i = 0; i < hs.length; i++) {
+    try { hs[i](state.tab); } catch (e) { console.error('[插件]', e); }
+  }
 }
 
 function goTab(tab, extra) {
@@ -1876,7 +1893,9 @@ function bindUpload() {
     const res = await postToRelay('scores', payload);
     sd.disabled = false; sd.textContent = '⚡ 直接提交给队长（不用发微信）';
     if (res.ok) { toast('已提交给队长 ✅ 不用再发微信了（他想导入时在收件箱里就能看到）', 9000); }
-    else { toast('直接提交没成功：' + res.error + '。已改用分享/复制，一样能交给队长', 11000); }
+    // ⚠️ 原来这句写的是"已改用分享/复制"—— 其实什么都没改，队员会以为已经交出去了。
+    //    改成说实话：还没交出去，你填的东西没丢，点下面那个按钮就行。
+    else { toast('⚠️ 还没交出去：' + res.error + '　→ 点下面的「📤 发给队长（微信）」，你填的成绩都在本机，不会丢', 13000); }
   };
 
   const sh = $('#btnShare');
@@ -2277,7 +2296,8 @@ function bindMe() {
     const res = await postToRelay('member', d3);
     sd2.disabled = false; sd2.textContent = '⚡ 直接提交给队长（不用发微信）';
     if (res.ok) toast('资料已提交给队长 ✅（含照片）', 9000);
-    else toast('直接提交没成功：' + res.error + '。已改用分享/复制，一样能交给队长', 11000);
+    // 同上：别说"已改用分享"，要说清"还没交出去、东西还在"
+    else toast('⚠️ 还没交出去：' + res.error + '　→ 点下面的「📤 发给队长（微信）」，你填的资料都在本机，不会丢', 13000);
   };
 
   const sh2 = $('#meShare');
@@ -4474,8 +4494,10 @@ async function uploadOne(cfg, path, b64, message, tries) {
   return { ok: false, error: String((last && last.message) || last) };
 }
 
-async function ghPut(cfg, path, b64, message) {
-  const sha = await ghGetSha(cfg, path);
+async function ghPut(cfg, path, b64, message, expectSha) {
+  // 传了 expectSha 就按乐观锁来：写的时候"必须还是我读到的那个版本"，别人中途改过就写不进去；
+  // 不传就现取（上传新照片、新建文件这类"不基于任何已有内容"的写入用现取的）
+  const sha = (arguments.length > 4) ? expectSha : await ghGetSha(cfg, path);
   const body = { message, content: b64, branch: cfg.branch || 'main' };
   if (sha) body.sha = sha;
   const r = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}`, {
@@ -4599,6 +4621,46 @@ async function safeMsg(r) {
   } catch (e) { return ''; }
 }
 
+let FRESH_SHA = '';   // cloudFresh 读到的那个版本的 sha —— 写回时带着它做乐观锁（见 pushToGitHub）
+
+/** 同 ghGetText，但把 sha 一起给出来（写回时要用它做乐观锁） */
+async function ghGetTextSha(cfg, path) {
+  try {
+    const r = await fetch(`${GH}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}?ref=${encodeURIComponent(cfg.branch || 'master')}&t=${Date.now()}`,
+      { headers: ghHeaders(cfg), cache: 'no-store' });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return { sha: d.sha || '', text: decodeURIComponent(escape(atob(String(d.content || '').replace(/\s/g, '')))) };
+  } catch (e) { return null; }
+}
+
+/** 写入前取「仓库里真正最新的那份」当合并基线 —— 走 GitHub 接口，不走网页。
+    ⚠️ 不能用 loadCloud() 读的那份：它来自 GitHub Pages，而 Pages 有最长 10 分钟的缓存 / 构建延时。
+       几十秒内连着写两次（待审台逐条点「通过并上线」就是这样）时，第二次会读到旧文件，
+       把第一次刚写进去的内容整段抹掉；而本机草稿那时已经被清空，数据就真的没了。
+       （2026-09-16 真事：付游的 2 条成绩上报 08:35:06 写上去，08:35:17 被下一次同步回滚掉） */
+async function cloudFresh() {
+  const cfg = ghCfg();
+  if (cfg && cfg.token) {
+    try {
+      const got = await ghGetTextSha(cfg, 'data/overrides.js');
+      const txt = got ? got.text : '';
+      const i = txt ? txt.indexOf('window.TEAM_OVERRIDES') : -1;
+      if (i >= 0) {
+        const j = txt.indexOf('=', i);
+        let body = txt.slice(j + 1).trim();
+        if (body.charAt(body.length - 1) === ';') body = body.slice(0, -1);
+        CLOUD_OV = JSON.parse(body);
+        FRESH_SHA = got.sha || '';          // ★ 记下这一版的 sha，写回时用它
+        SYNC_STATE = 'cloud';
+        return CLOUD_OV;
+      }
+    } catch (e) { /* 读不到（网络 / 权限）就退回网页那份，至少不会更坏 */ }
+  }
+  await loadCloud(true);
+  return CLOUD_OV || EMPTY_OV;
+}
+
 async function testSync() {
   const cfg = ghCfg();
   if (!cfg.token) return toast('先填访问令牌 → 保存设置，再点测试', 7000);
@@ -4607,7 +4669,7 @@ async function testSync() {
   if (btn) { btn.disabled = true; btn.textContent = '测试中…（最多 90 秒）'; }
   try {
     cfg.branch = await ghRealBranch(cfg); lsSet(LS_CFG, cfg);
-    const base = CLOUD_OV || EMPTY_OV;
+    const base = await cloudFresh();   // ★ 基线取仓库里最新那份（见 cloudFresh 注释）
     const stamp = Date.now();
     const mk = (extra) => '/* 由队长版写入 */\nwindow.TEAM_OVERRIDES = ' +
       JSON.stringify(Object.assign({}, base, extra, { queue: null }), null, 1) + ';\n';
@@ -4656,6 +4718,31 @@ async function testSync() {
   }
 }
 
+/** 两份数据之间"改了什么" —— 只挑出有意义的名字和数量，给改动历史和存档显示用
+    （不看字段全貌，只回答"这次动了哪几条成绩 / 哪几个人的资料"） */
+function summarizeOv(a, b) {
+  a = a || {}; b = b || {};
+  const rk = r => r ? [r.name, r.event || r.short || r.title || '', r.sec || r.time || r.date || ''].join('·') : '';
+  const added = (x, y) => { const s = new Set((x || []).map(rk)); return (y || []).map(rk).filter(k => k && !s.has(k)); };
+  const changedKeys = (x, y) => Object.keys(y || {}).filter(k => JSON.stringify((x || {})[k]) !== JSON.stringify(y[k]));
+  const inOnly = (x, y) => (x || []).filter(k => (y || []).indexOf(k) < 0);
+  const out = {};
+  const R1 = added(a.results, b.results);               if (R1.length) out['新增成绩'] = R1;
+  const R2 = added(b.results, a.results);               if (R2.length) out['删除成绩'] = R2;
+  const P1 = added(a.pbAdded, b.pbAdded);               if (P1.length) out['新增个人最好成绩'] = P1;
+  const P2 = added(b.pbAdded, a.pbAdded);               if (P2.length) out['删除个人最好成绩'] = P2;
+  const M1 = changedKeys(a.memberEdits, b.memberEdits); if (M1.length) out['改了名册资料'] = M1;
+  const C1 = added(a.competitions, b.competitions);     if (C1.length) out['新增比赛'] = C1;
+  const H1 = inOnly(b.hidden, a.hidden);                if (H1.length) out['隐藏了'] = H1;
+  const H2 = inOnly(a.hidden, b.hidden);                if (H2.length) out['恢复显示了'] = H2;
+  const T1 = changedKeys(a.team, b.team);               if (T1.length) out['队伍信息'] = T1;
+  const nM = (b.newMembers || []).length - (a.newMembers || []).length;
+  if (nM > 0) out['新增队员'] = (b.newMembers || []).slice(-nM).map(x => x && x.name);
+  const nP = (b.photos || []).length - (a.photos || []).length;
+  if (nP > 0) out['新增照片'] = nP;
+  return out;
+}
+
 async function pushToGitHub() {
   const cfg = ghCfg();
   if (!cfg.token) return toast('还没填「访问令牌」：数据管理 → 同步 → 粘上 github_pat_... → 点保存设置', 6000);
@@ -4667,14 +4754,14 @@ async function pushToGitHub() {
   }
   cfg.branch = await ghRealBranch(cfg);   // 用仓库真实的分支（main / master 自动认）
   lsSet(LS_CFG, cfg);                     // 顺便把正确的分支存回去
-  await loadCloud(true);            // 先拉一次最新的云端数据，避免把别人刚提交的覆盖掉
+  await cloudFresh();               // ★ 先取一次「仓库里最新那份」当基线 —— 不能读网页那份，见 cloudFresh 注释
   healRosterHidden();               // 同步前再自愈一次，保证这次就把 hidden 里的漏网的扣掉
   const btn = $('#btnPush');
   if (btn) { btn.disabled = true; btn.textContent = '正在同步…'; }
   try {
     // 1) 云端已有的 + 本机修改合并成新的 overrides
-    const cloud = CLOUD_OV || EMPTY_OV;
-    const merged = {
+    //    抽成函数是为了"写的时候发现别人也改过"时，能拿重新读到的那份再合并一遍（见第 3 步）
+    const buildMerged = (cloud) => ({
       team: Object.assign({}, cloud.team || {}, l.team || {}),
       honors: l.honors || cloud.honors || null,
       activities: l.activities || cloud.activities || null,
@@ -4723,7 +4810,8 @@ async function pushToGitHub() {
         return rest;                      // 图片本体单独提交，引用文件名
       })),
       updated: new Date().toISOString(),
-    };
+    });
+    let merged = buildMerged(CLOUD_OV || EMPTY_OV);
     // 2) 先传图片
     let n = 0;
     for (const p of (l.photos || [])) {
@@ -4733,9 +4821,38 @@ async function pushToGitHub() {
       n++;
       if (btn) btn.textContent = `正在同步… 照片 ${n}/${(l.photos || []).length}`;
     }
-    // 3) 再传数据
-    const ovB64 = btoa(unescape(encodeURIComponent('window.TEAM_OVERRIDES = ' + JSON.stringify(merged, null, 1) + ';\n')));
-    await ghPut(cfg, 'data/overrides.js', ovB64, '更新队伍数据（队伍信息/荣誉/名册/成绩/照片）');
+    // 3) 再传数据 —— 带上"我读到的那一版的 sha"（乐观锁）。
+    //    ⚠️ 原来 ghPut 会现取最新 sha 再写，等于"读了旧版本也照样覆盖"：别人在这中间写进去的东西会被静默抹掉。
+    //    现在带上 sha：如果这期间有别人写过，GitHub 会拒（409），那就重新读最新、重新合并、再写，最多 3 轮。
+    for (let attempt = 1; ; attempt++) {
+      const ovB64 = btoa(unescape(encodeURIComponent('window.TEAM_OVERRIDES = ' + JSON.stringify(merged, null, 1) + ';\n')));
+      try {
+        const wr = await ghPut(cfg, 'data/overrides.js', ovB64, '更新队伍数据（队伍信息/荣誉/名册/成绩/照片）', FRESH_SHA);
+        if (wr && wr.content && wr.content.sha) FRESH_SHA = wr.content.sha;   // 记住刚写出来的这一版，别再拿旧的
+        break;
+      } catch (e) {
+        const em = String((e && e.message) || '');
+        if (attempt >= 3 || !/( 409| 422)/.test(em)) throw e;      // 不是"版本过期"就照旧报错，别硬吞
+        if (btn) btn.textContent = '别人刚也改过，正在重新合并…（第 ' + (attempt + 1) + ' 次）';
+        await new Promise(r => setTimeout(r, 700));
+        await cloudFresh();                                        // 重读最新（顺便刷新 FRESH_SHA）
+        merged = buildMerged(CLOUD_OV || EMPTY_OV);                // 拿最新那份重新合并
+      }
+    }
+    // 4) 存档 —— 这次写出去的整份数据，单独存成一个新文件（data/history/时间.js）
+    //    ★ 一次改动一个文件、永不覆盖别人：万一哪次真的盖掉了什么，也能从这里把当时那份原样捞回来。
+    //    文件名带时间戳，按名字排就是时间顺序；读取端用 GitHub 目录接口列出来 —— 不需要"索引文件"，
+    //    因为索引文件本身又是一个多写者争用的东西，能不要就不要。
+    //    存档失败不影响同步结果：同步已经成功了，不能因为留档失败让队长以为没同步上。
+    try {
+      const st = new Date().toISOString();
+      const fn = st.slice(0, 19).replace(/[-:]/g, '').replace('T', '-') + '-' + Math.random().toString(36).slice(2, 6);
+      const arch = '/* 麦田守望长跑队 · 改动存档（自动生成，请勿手改） */\nwindow.TEAM_ARCHIVE = ' +
+        JSON.stringify({ t: st, ver: 1, changed: summarizeOv(CLOUD_OV || EMPTY_OV, merged), state: merged }, null, 1) + ';\n';
+      await ghPut(cfg, 'data/history/' + fn + '.js', b64enc(arch), '存档 ' + st.slice(0, 19).replace('T', ' '));
+      if (btn) btn.textContent = '已同步，并留了一份存档…';
+    } catch (e) { console.warn('[存档] 没写成功（不影响同步）', e); }
+
     CLOUD_OV = merged;
     LOCAL_OV = {};
     lsSet(LS_LOCAL, {});
@@ -5016,4 +5133,14 @@ function startAutoRefresh() {
   if (MODE === 'captain' && loadCfgFromHash()) toast('已用链接里的账号自动填好，可以直接同步', 4000);
   render();
   startAutoRefresh();
+  __mtLoadPlugins();
 })();
+
+/** 加载插件（成绩图谱、数据体检…，具体清单写在 assets/plugins.js 里）
+    单独成文件是为了以后加插件不用再动 app.js 这个主文件 */
+function __mtLoadPlugins() {
+  const s = document.createElement('script');
+  s.src = ROOT + 'assets/plugins.js?t=' + Date.now();
+  s.onerror = () => console.warn('[插件] assets/plugins.js 没加载上（原有功能不受影响）');
+  document.head.appendChild(s);
+}
