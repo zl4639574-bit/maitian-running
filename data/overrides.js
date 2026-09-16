@@ -530,7 +530,7 @@ window.TEAM_OVERRIDES = {
   },
   "王涛": {
    "college": "生命科学学院",
-   "major": "生物工程",
+   "major": "生工2403",
    "grade": "2024",
    "level": [
     "正式"
@@ -1129,6 +1129,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789547716328,
    "sex": "男",
    "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu3uwdfm_1_5bja",
+   "name": "王涛",
+   "event": "800米",
+   "sec": 130,
+   "fmt": "2:10",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548377602,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwdfm_2_d5ck",
+   "name": "王涛",
+   "event": "1500米",
+   "sec": 275,
+   "fmt": "4:35",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548377602,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwdfm_3_n60w",
+   "name": "王涛",
+   "event": "3000米",
+   "sec": 598,
+   "fmt": "9:58",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548377602,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwdfm_4_moi2",
+   "name": "王涛",
+   "event": "5000米",
+   "sec": 1022,
+   "fmt": "17:02",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548377602,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwdfm_5_339s",
+   "name": "王涛",
+   "event": "10000米",
+   "sec": 2137,
+   "fmt": "35:37",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548377602,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwdfm_6_kvim",
+   "name": "王涛",
+   "event": "半马",
+   "sec": 4722,
+   "fmt": "1:18:42",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548377602,
+   "sex": "男",
+   "college": "生命科学学院"
   }
  ],
  "pbHidden": [
@@ -1319,5 +1397,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T08:35:17.459Z"
+ "updated": "2026-09-16T08:46:18.955Z"
 };
