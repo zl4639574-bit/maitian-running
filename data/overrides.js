@@ -1,3 +1,4 @@
+/* 由队长版写入 */
 window.TEAM_OVERRIDES = {
  "team": {},
  "honors": null,
@@ -1196,5 +1197,6 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-15T14:57:40.211Z"
+ "updated": "2026-09-15T14:57:40.211Z",
+ "selfTest": 1789539213646
 };
