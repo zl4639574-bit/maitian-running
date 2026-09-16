@@ -581,7 +581,8 @@ window.TEAM_OVERRIDES = {
    "college": "信息工程学院",
    "major": "计科2405",
    "grade": "2024",
-   "photo": "images/avatars/me0kg.jpg"
+   "photo": "images/avatars/me0kg.jpg",
+   "level": []
   }
  },
  "newMembers": [
@@ -1488,5 +1489,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T09:32:35.055Z"
+ "updated": "2026-09-16T09:33:54.029Z"
 };
