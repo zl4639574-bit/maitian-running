@@ -1207,6 +1207,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789548397361,
    "sex": "男",
    "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwwbk_13_asoy",
+   "name": "王涛",
+   "event": "800米",
+   "sec": 130,
+   "fmt": "2:10",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548402080,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwwbk_14_9s38",
+   "name": "王涛",
+   "event": "1500米",
+   "sec": 275,
+   "fmt": "4:35",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548402080,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwwbk_15_4otz",
+   "name": "王涛",
+   "event": "3000米",
+   "sec": 598,
+   "fmt": "9:58",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548402080,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwwbk_16_n1dr",
+   "name": "王涛",
+   "event": "5000米",
+   "sec": 1022,
+   "fmt": "17:02",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548402080,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwwbk_17_sbcx",
+   "name": "王涛",
+   "event": "10000米",
+   "sec": 2137,
+   "fmt": "35:37",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548402080,
+   "sex": "男",
+   "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu3uwwbk_18_h5q6",
+   "name": "王涛",
+   "event": "半马",
+   "sec": 4722,
+   "fmt": "1:18:42",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789548402080,
+   "sex": "男",
+   "college": "生命科学学院"
   }
  ],
  "pbHidden": [
@@ -1397,5 +1475,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T08:46:38.881Z"
+ "updated": "2026-09-16T08:46:42.977Z"
 };
