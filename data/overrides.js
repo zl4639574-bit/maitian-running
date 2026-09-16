@@ -1131,7 +1131,7 @@ window.TEAM_OVERRIDES = {
    "college": "信息工程学院"
   },
   {
-   "uid": "rmu3uwdfm_1_5bja",
+   "uid": "rmu3uwsoh_7_lpm7",
    "name": "王涛",
    "event": "800米",
    "sec": 130,
@@ -1139,12 +1139,12 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789548377602,
+   "ts": 1789548397361,
    "sex": "男",
    "college": "生命科学学院"
   },
   {
-   "uid": "rmu3uwdfm_2_d5ck",
+   "uid": "rmu3uwsoh_8_3wcm",
    "name": "王涛",
    "event": "1500米",
    "sec": 275,
@@ -1152,12 +1152,12 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789548377602,
+   "ts": 1789548397361,
    "sex": "男",
    "college": "生命科学学院"
   },
   {
-   "uid": "rmu3uwdfm_3_n60w",
+   "uid": "rmu3uwsoh_9_2l73",
    "name": "王涛",
    "event": "3000米",
    "sec": 598,
@@ -1165,12 +1165,12 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789548377602,
+   "ts": 1789548397361,
    "sex": "男",
    "college": "生命科学学院"
   },
   {
-   "uid": "rmu3uwdfm_4_moi2",
+   "uid": "rmu3uwsoh_10_mvbi",
    "name": "王涛",
    "event": "5000米",
    "sec": 1022,
@@ -1178,12 +1178,12 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789548377602,
+   "ts": 1789548397361,
    "sex": "男",
    "college": "生命科学学院"
   },
   {
-   "uid": "rmu3uwdfm_5_339s",
+   "uid": "rmu3uwsoh_11_ma6c",
    "name": "王涛",
    "event": "10000米",
    "sec": 2137,
@@ -1191,12 +1191,12 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789548377602,
+   "ts": 1789548397361,
    "sex": "男",
    "college": "生命科学学院"
   },
   {
-   "uid": "rmu3uwdfm_6_kvim",
+   "uid": "rmu3uwsoh_12_b6ge",
    "name": "王涛",
    "event": "半马",
    "sec": 4722,
@@ -1204,7 +1204,7 @@ window.TEAM_OVERRIDES = {
    "date": "",
    "meet": "队员自报",
    "rank": "",
-   "ts": 1789548377602,
+   "ts": 1789548397361,
    "sex": "男",
    "college": "生命科学学院"
   }
@@ -1397,5 +1397,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T08:46:18.955Z"
+ "updated": "2026-09-16T08:46:38.881Z"
 };
