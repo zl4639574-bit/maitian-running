@@ -582,7 +582,9 @@ window.TEAM_OVERRIDES = {
    "major": "计科2405",
    "grade": "2024",
    "photo": "images/avatars/me0kg.jpg",
-   "level": []
+   "level": [
+    "正式"
+   ]
   }
  },
  "newMembers": [
@@ -1489,5 +1491,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T09:33:54.029Z"
+ "updated": "2026-09-16T09:34:56.641Z"
 };
