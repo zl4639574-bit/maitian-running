@@ -632,6 +632,14 @@ window.TEAM_OVERRIDES = {
    "event": "半马",
    "note": "",
    "records": []
+  },
+  {
+   "id": "cmu6pozy0",
+   "name": "2026.9.19高百选拔4km测速",
+   "date": "2026.9.19",
+   "event": "4000",
+   "note": "",
+   "records": []
   }
  ],
  "compRecords": {
@@ -1491,5 +1499,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-16T09:34:56.641Z"
+ "updated": "2026-09-18T08:44:51.435Z"
 };
