@@ -637,6 +637,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789818600975,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu8bsky3_14_t8uj",
+   "name": "张绍洋",
+   "event": "4000m",
+   "sec": 847,
+   "fmt": "14:07",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789818618891,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -1675,5 +1688,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:50:03.111Z"
+ "updated": "2026-09-19T11:50:21.035Z"
 };
