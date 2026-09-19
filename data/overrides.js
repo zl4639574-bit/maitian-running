@@ -598,6 +598,12 @@ window.TEAM_OVERRIDES = {
    "college": "机电学院",
    "major": "机械类2609",
    "grade": "2026"
+  },
+  "时梓涵": {
+   "sex": "男",
+   "college": "资环学院",
+   "major": "资环2405",
+   "grade": "2024"
   }
  },
  "newMembers": [
@@ -2110,5 +2116,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:51:30.460Z"
+ "updated": "2026-09-19T11:51:52.825Z"
 };
