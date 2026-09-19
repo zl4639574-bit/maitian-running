@@ -624,6 +624,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789440839636,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu8bs74f_13_55i1",
+   "name": "汤睿",
+   "event": "其他",
+   "sec": 901,
+   "fmt": "15:01",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789818600975,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -1662,5 +1675,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:49:38.781Z"
+ "updated": "2026-09-19T11:50:03.111Z"
 };
