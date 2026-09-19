@@ -1,0 +1,24 @@
+{
+ "at": "2026-09-19T11:50:10.781Z",
+ "reviewer": "队长",
+ "action": "approve",
+ "id": "20260919114022-l8v07",
+ "type": "maitian-scores",
+ "submittedAt": "2026-09-19T11:40:22.915Z",
+ "edited": false,
+ "summary": "1 条成绩",
+ "detail": {
+  "date": "2026.09.19",
+  "rows": [
+   {
+    "name": "汤睿",
+    "event": "其他",
+    "fmt": "15:01",
+    "sec": 901,
+    "date": "2026.09.19",
+    "meet": "2026.9.19高百选拔4km测速",
+    "rank": ""
+   }
+  ]
+ }
+}
