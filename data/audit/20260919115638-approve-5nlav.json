@@ -1,0 +1,24 @@
+{
+ "at": "2026-09-19T11:56:38.133Z",
+ "reviewer": "队长",
+ "action": "approve",
+ "id": "20260919115012-5nlav",
+ "type": "maitian-scores",
+ "submittedAt": "2026-09-19T11:50:12.373Z",
+ "edited": false,
+ "summary": "1 条成绩",
+ "detail": {
+  "date": "2026.09.19",
+  "rows": [
+   {
+    "name": "姜垚垚",
+    "event": "4公里",
+    "fmt": "19:33",
+    "sec": 1173,
+    "date": "2026.09.19",
+    "meet": "2026.9.19高百选拔4km测速",
+    "rank": ""
+   }
+  ]
+ }
+}
