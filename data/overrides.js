@@ -1595,6 +1595,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789818624785,
    "sex": "男",
    "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bsu8o_21_kjcr",
+   "name": "李志宏",
+   "event": "800米",
+   "sec": 129,
+   "fmt": "2:09",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818630936,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu8bsu8o_22_ytz2",
+   "name": "李志宏",
+   "event": "1500米",
+   "sec": 274,
+   "fmt": "4:34",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818630936,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu8bsu8o_23_e1i7",
+   "name": "李志宏",
+   "event": "3000米",
+   "sec": 606,
+   "fmt": "10:06",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818630936,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu8bsu8o_24_aeot",
+   "name": "李志宏",
+   "event": "5000米",
+   "sec": 1095,
+   "fmt": "18:15",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818630936,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu8bsu8o_25_0533",
+   "name": "李志宏",
+   "event": "10000米",
+   "sec": 2361,
+   "fmt": "39:21",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818630936,
+   "sex": "男",
+   "college": "林学院"
+  },
+  {
+   "uid": "rmu8bsu8o_26_lpic",
+   "name": "李志宏",
+   "event": "半马",
+   "sec": 5009,
+   "fmt": "1:23:29",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818630936,
+   "sex": "男",
+   "college": "林学院"
   }
  ],
  "pbHidden": [
@@ -1785,5 +1863,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:50:29.832Z"
+ "updated": "2026-09-19T11:50:36.399Z"
 };
