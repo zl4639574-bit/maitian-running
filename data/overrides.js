@@ -2123,6 +2123,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789837639689,
    "sex": "男",
    "college": "资环学院"
+  },
+  {
+   "uid": "rmu8n4c61_2_01h4",
+   "name": "时梓涵",
+   "event": "半马",
+   "sec": 4890,
+   "fmt": "1:21:30",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789837643161,
+   "sex": "男",
+   "college": "资环学院"
   }
  ],
  "pbHidden": [
@@ -2313,5 +2326,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T17:07:21.536Z"
+ "updated": "2026-09-19T17:07:24.847Z"
 };
