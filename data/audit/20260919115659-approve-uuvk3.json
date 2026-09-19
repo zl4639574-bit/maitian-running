@@ -1,0 +1,24 @@
+{
+ "at": "2026-09-19T11:56:59.517Z",
+ "reviewer": "队长",
+ "action": "approve",
+ "id": "20260919112538-uuvk3",
+ "type": "maitian-member",
+ "submittedAt": "2026-09-19T11:25:38.309Z",
+ "edited": false,
+ "summary": "资料：信息 4 项、成绩 3 条",
+ "detail": {
+  "type": "maitian-member",
+  "name": "穆芸欣",
+  "sex": "女",
+  "college": "食品学院",
+  "major": "营养2501",
+  "grade": "2024",
+  "pb": {
+   "800米": "2：44",
+   "1500米": "5：42",
+   "3000米": "12：25"
+  },
+  "photo": ""
+ }
+}
