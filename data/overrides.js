@@ -616,6 +616,9 @@ window.TEAM_OVERRIDES = {
    "college": "食品学院",
    "major": "营养2501",
    "grade": "2024"
+  },
+  "王尚": {
+   "photo": "images/avatars/mk5pr.jpg"
   }
  },
  "newMembers": [
@@ -2297,5 +2300,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:56:51.414Z"
+ "updated": "2026-09-19T11:57:07.162Z"
 };
