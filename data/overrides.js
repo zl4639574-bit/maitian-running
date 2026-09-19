@@ -592,6 +592,12 @@ window.TEAM_OVERRIDES = {
    "major": "数科2501",
    "grade": "2025",
    "photo": "images/avatars/mdl7h8.jpg"
+  },
+  "刘亦帆": {
+   "sex": "男",
+   "college": "机电学院",
+   "major": "机械类2609",
+   "grade": "2026"
   }
  },
  "newMembers": [
@@ -635,6 +641,19 @@ window.TEAM_OVERRIDES = {
    "meet": "2026.9.19高百选拔4km测速",
    "rank": "",
    "ts": 1789818600975,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu8bsky3_14_t8uj",
+   "name": "张绍洋",
+   "event": "4000m",
+   "sec": 847,
+   "fmt": "14:07",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789818618891,
    "local": false,
    "published": true
   },
@@ -1498,6 +1517,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789818576824,
    "sex": "女",
    "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu8bspht_15_o16c",
+   "name": "刘亦帆",
+   "event": "800米",
+   "sec": 230,
+   "fmt": "3:50",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818624785,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bspht_16_h21k",
+   "name": "刘亦帆",
+   "event": "1500米",
+   "sec": 451,
+   "fmt": "7:31",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818624785,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bspht_17_scbz",
+   "name": "刘亦帆",
+   "event": "3000米",
+   "sec": 684,
+   "fmt": "11:24",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818624785,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bspht_18_uei8",
+   "name": "刘亦帆",
+   "event": "5000米",
+   "sec": 1140,
+   "fmt": "19:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818624785,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bspht_19_hdx8",
+   "name": "刘亦帆",
+   "event": "10000米",
+   "sec": 2520,
+   "fmt": "42:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818624785,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bspht_20_py49",
+   "name": "刘亦帆",
+   "event": "半马",
+   "sec": 8700,
+   "fmt": "2:25:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818624785,
+   "sex": "男",
+   "college": "机电学院"
   }
  ],
  "pbHidden": [
@@ -1688,5 +1785,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:50:21.035Z"
+ "updated": "2026-09-19T11:50:29.832Z"
 };
