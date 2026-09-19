@@ -604,6 +604,12 @@ window.TEAM_OVERRIDES = {
    "college": "资环学院",
    "major": "资环2405",
    "grade": "2024"
+  },
+  "李跃根": {
+   "sex": "男",
+   "college": "资环",
+   "major": "环科",
+   "grade": "2025"
   }
  },
  "newMembers": [
@@ -2246,5 +2252,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:56:33.052Z"
+ "updated": "2026-09-19T11:56:44.886Z"
 };
