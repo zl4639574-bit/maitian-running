@@ -610,6 +610,12 @@ window.TEAM_OVERRIDES = {
    "college": "资环",
    "major": "环科",
    "grade": "2025"
+  },
+  "穆芸欣": {
+   "sex": "女",
+   "college": "食品学院",
+   "major": "营养2501",
+   "grade": "2024"
   }
  },
  "newMembers": [
@@ -2062,6 +2068,45 @@ window.TEAM_OVERRIDES = {
    "ts": 1789818750924,
    "sex": "男",
    "college": "机电学院"
+  },
+  {
+   "uid": "rmu8c0yic_3_1dzy",
+   "name": "穆芸欣",
+   "event": "800米",
+   "sec": 164,
+   "fmt": "2:44",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789819009716,
+   "sex": "女",
+   "college": "食品学院"
+  },
+  {
+   "uid": "rmu8c0yic_4_lrmh",
+   "name": "穆芸欣",
+   "event": "1500米",
+   "sec": 342,
+   "fmt": "5:42",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789819009716,
+   "sex": "女",
+   "college": "食品学院"
+  },
+  {
+   "uid": "rmu8c0yic_5_9ybt",
+   "name": "穆芸欣",
+   "event": "3000米",
+   "sec": 745,
+   "fmt": "12:25",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789819009716,
+   "sex": "女",
+   "college": "食品学院"
   }
  ],
  "pbHidden": [
@@ -2252,5 +2297,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:56:44.886Z"
+ "updated": "2026-09-19T11:56:51.414Z"
 };
