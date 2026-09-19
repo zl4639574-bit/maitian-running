@@ -714,6 +714,32 @@ window.TEAM_OVERRIDES = {
    "ts": 1789818987770,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu8c0g6r_1_f5fg",
+   "name": "姜垚垚",
+   "event": "4公里",
+   "sec": 1173,
+   "fmt": "19:33",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789818985971,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu8c0hkq_2_0vbi",
+   "name": "姜垚垚",
+   "event": "4公里",
+   "sec": 1173,
+   "fmt": "19:33",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789818987770,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2220,5 +2246,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:56:28.466Z"
+ "updated": "2026-09-19T11:56:33.052Z"
 };
