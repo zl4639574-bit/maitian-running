@@ -585,6 +585,13 @@ window.TEAM_OVERRIDES = {
    "level": [
     "正式"
    ]
+  },
+  "姜垚垚": {
+   "sex": "女",
+   "college": "信息工程学院",
+   "major": "数科2501",
+   "grade": "2025",
+   "photo": "images/avatars/mdl7h8.jpg"
   }
  },
  "newMembers": [
@@ -1309,6 +1316,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789548402080,
    "sex": "男",
    "college": "生命科学学院"
+  },
+  {
+   "uid": "rmu8brklj_1_fz07",
+   "name": "姜垚垚",
+   "event": "800米",
+   "sec": 186,
+   "fmt": "3:06",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818571783,
+   "sex": "女",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu8brklj_2_hy37",
+   "name": "姜垚垚",
+   "event": "1500米",
+   "sec": 373,
+   "fmt": "6:13",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818571783,
+   "sex": "女",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu8brklj_3_oh8v",
+   "name": "姜垚垚",
+   "event": "3000米",
+   "sec": 830,
+   "fmt": "13:50",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818571783,
+   "sex": "女",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu8brklj_4_87vv",
+   "name": "姜垚垚",
+   "event": "5000米",
+   "sec": 1475,
+   "fmt": "24:35",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818571783,
+   "sex": "女",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu8brklj_5_ejlc",
+   "name": "姜垚垚",
+   "event": "10000米",
+   "sec": 3170,
+   "fmt": "52:50",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818571783,
+   "sex": "女",
+   "college": "信息工程学院"
+  },
+  {
+   "uid": "rmu8brklj_6_72xy",
+   "name": "姜垚垚",
+   "event": "半马",
+   "sec": 6933,
+   "fmt": "1:55:33",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818571783,
+   "sex": "女",
+   "college": "信息工程学院"
   }
  ],
  "pbHidden": [
@@ -1499,5 +1584,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-18T08:44:51.435Z"
+ "updated": "2026-09-19T11:49:33.664Z"
 };
