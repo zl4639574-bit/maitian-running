@@ -762,6 +762,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789818987770,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu8n5rio_7_5lms",
+   "name": "李跃根",
+   "event": "4公里",
+   "sec": 787,
+   "fmt": "13:07",
+   "date": "2026.09.19",
+   "meet": "",
+   "rank": "",
+   "ts": 1789837709712,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2385,5 +2398,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T17:08:19.774Z"
+ "updated": "2026-09-19T17:08:31.572Z"
 };
