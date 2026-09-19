@@ -1926,6 +1926,84 @@ window.TEAM_OVERRIDES = {
    "ts": 1789818688449,
    "sex": "男",
    "college": "林学院"
+  },
+  {
+   "uid": "rmu8bveto_46_u5cy",
+   "name": "刘亦帆",
+   "event": "800米",
+   "sec": 230,
+   "fmt": "3:50",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818750924,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bveto_47_owht",
+   "name": "刘亦帆",
+   "event": "1500米",
+   "sec": 451,
+   "fmt": "7:31",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818750924,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bveto_48_7dg2",
+   "name": "刘亦帆",
+   "event": "3000米",
+   "sec": 684,
+   "fmt": "11:24",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818750924,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bveto_49_m2ei",
+   "name": "刘亦帆",
+   "event": "5000米",
+   "sec": 1140,
+   "fmt": "19:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818750924,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bveto_50_5cuv",
+   "name": "刘亦帆",
+   "event": "10000米",
+   "sec": 2520,
+   "fmt": "42:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818750924,
+   "sex": "男",
+   "college": "机电学院"
+  },
+  {
+   "uid": "rmu8bveto_51_v3kz",
+   "name": "刘亦帆",
+   "event": "半马",
+   "sec": 8700,
+   "fmt": "2:25:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789818750924,
+   "sex": "男",
+   "college": "机电学院"
   }
  ],
  "pbHidden": [
@@ -2116,5 +2194,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T11:51:52.825Z"
+ "updated": "2026-09-19T11:52:33.066Z"
 };
