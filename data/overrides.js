@@ -775,6 +775,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789837709712,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu8n6fw2_8_0jea",
+   "name": "阳兴涛",
+   "event": "4000米",
+   "sec": 926,
+   "fmt": "15:26",
+   "date": "2026.09.19",
+   "meet": "",
+   "rank": "",
+   "ts": 1789837741298,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2398,5 +2411,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T17:08:45.850Z"
+ "updated": "2026-09-19T17:09:04.083Z"
 };
