@@ -619,6 +619,13 @@ window.TEAM_OVERRIDES = {
   },
   "王尚": {
    "photo": "images/avatars/mk5pr.jpg"
+  },
+  "汤睿": {
+   "sex": "男",
+   "college": "化学与药学院",
+   "major": "应化2501",
+   "grade": "2025级",
+   "photo": "images/avatars/mj3bv.jpg"
   }
  },
  "newMembers": [
@@ -2136,6 +2143,58 @@ window.TEAM_OVERRIDES = {
    "ts": 1789837643161,
    "sex": "男",
    "college": "资环学院"
+  },
+  {
+   "uid": "rmu8n4us5_3_g39c",
+   "name": "汤睿",
+   "event": "3000米",
+   "sec": 671,
+   "fmt": "11:11",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789837667285,
+   "sex": "男",
+   "college": "化学与药学院"
+  },
+  {
+   "uid": "rmu8n4us5_4_x8o2",
+   "name": "汤睿",
+   "event": "5000米",
+   "sec": 1200,
+   "fmt": "20:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789837667285,
+   "sex": "男",
+   "college": "化学与药学院"
+  },
+  {
+   "uid": "rmu8n4us5_5_o1yl",
+   "name": "汤睿",
+   "event": "10000米",
+   "sec": 2618,
+   "fmt": "43:38",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789837667285,
+   "sex": "男",
+   "college": "化学与药学院"
+  },
+  {
+   "uid": "rmu8n4us5_6_0ppt",
+   "name": "汤睿",
+   "event": "半马",
+   "sec": 6351,
+   "fmt": "1:45:51",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789837667285,
+   "sex": "男",
+   "college": "化学与药学院"
   }
  ],
  "pbHidden": [
@@ -2326,5 +2385,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T17:07:24.847Z"
+ "updated": "2026-09-19T17:07:49.363Z"
 };
