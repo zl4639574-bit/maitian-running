@@ -142,6 +142,10 @@ table.tbl th.no-sort{cursor:default}
 table.tbl td{padding:11px 14px;border-bottom:1px solid #F0F5ED;vertical-align:middle}
 table.tbl tr:last-child td{border-bottom:0}
 table.tbl tbody tr:hover{background:#F6FAF4}
+/* 比赛榜里「我自己」那一行：淡金底 + 左侧金条，一眼就能找到自己 */
+table.tbl tbody tr.me-row{background:var(--wheat-soft)}
+table.tbl tbody tr.me-row:hover{background:#F4EECB}
+table.tbl tbody tr.me-row td:first-child{box-shadow:inset 3px 0 0 var(--wheat-bright)}
 .rank{font-variant-numeric:tabular-nums;font-weight:700;color:var(--t2);width:44px}
 .rank.top1{color:var(--gold)}.rank.top2{color:var(--silver)}.rank.top3{color:var(--bronze)}
 .tm{font-variant-numeric:tabular-nums;font-weight:700;color:var(--green)}
