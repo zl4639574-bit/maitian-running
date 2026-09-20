@@ -613,7 +613,8 @@ window.TEAM_OVERRIDES = {
    "sex": "女",
    "college": "食品学院",
    "major": "营养2501",
-   "grade": "2024"
+   "grade": "2024",
+   "photo": "images/avatars/mijkfl.jpg"
   },
   "王尚": {
    "photo": "images/avatars/mk5pr.jpg"
@@ -975,84 +976,6 @@ window.TEAM_OVERRIDES = {
    "rank": "",
    "meet": "2026.9.19高百选拔4km测速",
    "ts": 1789897393122,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu9mye78_1_1py8",
-   "name": "王涛",
-   "event": "4000米",
-   "sec": 870,
-   "fmt": "14:30",
-   "date": "2026.09.19",
-   "meet": "2026.9.19高百选拔4km测速",
-   "rank": "",
-   "ts": 1789897832036,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu9myhcy_2_bar5",
-   "name": "王涛",
-   "event": "4000米",
-   "sec": 870,
-   "fmt": "14:30",
-   "date": "2026.09.19",
-   "meet": "2026.9.19高百选拔4km测速",
-   "rank": "",
-   "ts": 1789897836130,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu9myhqw_3_f0ib",
-   "name": "王涛",
-   "event": "4000米",
-   "sec": 870,
-   "fmt": "14:30",
-   "date": "2026.09.19",
-   "meet": "2026.9.19高百选拔4km测速",
-   "rank": "",
-   "ts": 1789897836632,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu9myhwk_4_1xta",
-   "name": "王涛",
-   "event": "4000米",
-   "sec": 870,
-   "fmt": "14:30",
-   "date": "2026.09.19",
-   "meet": "2026.9.19高百选拔4km测速",
-   "rank": "",
-   "ts": 1789897836836,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu9myi5b_5_uu1l",
-   "name": "王涛",
-   "event": "4000米",
-   "sec": 870,
-   "fmt": "14:30",
-   "date": "2026.09.19",
-   "meet": "2026.9.19高百选拔4km测速",
-   "rank": "",
-   "ts": 1789897837151,
-   "local": false,
-   "published": true
-  },
-  {
-   "uid": "rmu9myiaq_6_saz9",
-   "name": "王涛",
-   "event": "4000米",
-   "sec": 870,
-   "fmt": "14:30",
-   "date": "2026.09.19",
-   "meet": "2026.9.19高百选拔4km测速",
-   "rank": "",
-   "ts": 1789897837346,
    "local": false,
    "published": true
   }
@@ -2777,5 +2700,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T09:50:40.063Z"
+ "updated": "2026-09-20T09:52:03.494Z"
 };
