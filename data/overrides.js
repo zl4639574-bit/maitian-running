@@ -961,6 +961,22 @@ window.TEAM_OVERRIDES = {
    "ts": 1789873766850,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu9mozj6_2_hgp2",
+   "name": "李跃根",
+   "event": "4000米",
+   "raw": "13:07",
+   "sec": 787,
+   "fmt": "13:07",
+   "sex": "男",
+   "college": "资环学院",
+   "date": "2026.09.20",
+   "rank": "",
+   "meet": "2026.9.19高百选拔4km测速",
+   "ts": 1789897393122,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2683,5 +2699,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T09:45:37.325Z"
+ "updated": "2026-09-20T09:46:57.527Z"
 };
