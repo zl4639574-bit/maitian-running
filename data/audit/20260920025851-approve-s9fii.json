@@ -1,0 +1,22 @@
+{
+ "at": "2026-09-20T02:58:51.374Z",
+ "reviewer": "队长",
+ "action": "approve",
+ "id": "20260920015053-s9fii",
+ "type": "maitian-member",
+ "submittedAt": "2026-09-20T01:50:53.116Z",
+ "edited": false,
+ "summary": "资料：信息 4 项、成绩 1 条",
+ "detail": {
+  "type": "maitian-member",
+  "name": "时梓涵",
+  "sex": "男",
+  "college": "资环学院",
+  "major": "资环2405",
+  "grade": "2024",
+  "pb": {
+   "半马": "1:21:30"
+  },
+  "photo": ""
+ }
+}
