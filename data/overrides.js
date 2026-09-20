@@ -3,7 +3,6 @@ window.TEAM_OVERRIDES = {
  "honors": null,
  "activities": null,
  "hidden": [
-  "刘恒",
   "付一然",
   "师涵莹",
   "张浩铖",
@@ -11,7 +10,6 @@ window.TEAM_OVERRIDES = {
   "杨晨子",
   "王俊尧",
   "王艳",
-  "穆彦情",
   "管清铄",
   "谢国莹",
   "邢凯杰",
@@ -1018,6 +1016,18 @@ window.TEAM_OVERRIDES = {
     "rank": "",
     "meet": "2025杨凌农科城马拉松赛",
     "ts": 1789441047274,
+    "note": ""
+   }
+  ],
+  "cmu6pozy0": [
+   {
+    "name": "姚语熙",
+    "event": "4000",
+    "raw": "16:58",
+    "sec": 1018,
+    "fmt": "16:58",
+    "sex": "女",
+    "college": "",
     "note": ""
    }
   ]
@@ -2508,10 +2518,6 @@ window.TEAM_OVERRIDES = {
  ],
  "shownPhotos": [],
  "hall": [],
- "relay": {
-  "url": "https://1452663810-5jp3bggvln.ap-guangzhou.tencentscf.com",
-  "code": "maitian"
- },
  "queue": null,
  "photos": [
   {
@@ -2677,5 +2683,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T03:09:28.776Z"
+ "updated": "2026-09-20T09:45:37.325Z"
 };
