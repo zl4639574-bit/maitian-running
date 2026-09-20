@@ -164,6 +164,51 @@ function normEvent(ev) {
   return near ? DIST_BY_M[near] : raw;
 }
 
+/* --- 项目兜底：老数据里有人把项目写成「其他」「未标注」这种认不出距离的占位词
+       （以前那个格子是自由输入框，2026-09-20 才改成下拉），结果他会自己单独占一个项目分组。
+       遇到这种写法就按「这条成绩的赛事名」里的距离兜底 —— 赛事叫「2026.9.19高百选拔4km测速」，
+       那条没写项目的成绩就是 4000米。原写法留在 evRaw 里，界面上会说明「原写「其他」」。 --- */
+
+const EV_PLACEHOLDER = /^(其他|其它|未指定|未标注|未填写|未填|无|未知|待定|不限|全部)$/;
+
+/** 从赛事名里抠出距离：「4km测速」「5000米测试」「半马」都认；认不出返回 '' */
+function eventFromMeetName(name) {
+  const s = String(name || '');
+  if (!s) return '';
+  const m = s.match(/(\d+(?:[.]\d+)?)\s*(公里|千米|km|KM|Km|米|m)/);
+  if (m) {
+    const n = parseFloat(m[1]);
+    // 「2026米」这种明显是年份，别乱认
+    if (!(m[2] === '米' && n >= 1900 && n <= 2100)) {
+      const ev = normEvent(m[1] + m[2]);
+      if (ev && DIST_OPTS.indexOf(ev) >= 0) return ev;
+    }
+  }
+  if (/半马|半程/.test(s)) return '半马';
+  if (/全马|全程|马拉松/.test(s)) return '全马';
+  return '';
+}
+
+/** 一条成绩的项目名：认得出就用认出来的；占位写法（「其他」/ 空的）→ 用赛事名里的距离兜底 */
+function evOf(r) {
+  const raw = String((r && r.event) || '').trim();
+  const ev = normEvent(raw) || raw;
+  if (ev && DIST_OPTS.indexOf(ev) >= 0) return ev;
+  if (raw && !EV_PLACEHOLDER.test(raw)) return ev;    // 真·自定义项目（越野 / 12公里）不动它
+  return eventFromMeetName(r && (r.meet || r.note || '')) || ev;
+}
+
+/** 要不要在界面上标注「项目原写「其他」」：
+    只在「这条原本认不出距离、是靠赛事名兜底才归上组的」时才标。
+    「4公里」「4000m」这种本来就认得出、只是写法不同 —— 不标，不然满屏都是解释。 */
+function evRawOf(rawEvent, resolved) {
+  const raw = String(rawEvent || '').trim();
+  if (!raw || raw === resolved) return '';
+  const normed = normEvent(raw) || raw;
+  if (resolved === normed) return '';
+  return raw;
+}
+
 /** 项目下拉框：固定 9 个距离 + 「其他（自己填）」兜底。
     opt.empty 给了就先插一个空选项（可选填的场景），opt.def 是默认选中项 */
 function distSelectHtml(id, val, opt) {
@@ -435,7 +480,11 @@ function competitions() {
   const add = o.compRecords || {};
   const build = (id, base) => (base || []).concat(add[id] || [])
     .filter(r => r && r.name && r.sec && (r.keep || !hid.has(id + '|' + r.name + '|' + r.sec)))
-    .map(r => Object.assign({}, r, { event: normEvent(r.event) || r.event }));
+    .map(r => {
+      const ev = evOf(r);
+      // evRaw：只有「本来认不出距离、靠赛事名兜底才归上组」的才留着，界面上说明「原写「其他」」
+      return Object.assign({}, r, { event: ev, evRaw: evRawOf(r.event, ev) });
+    });
 
   const out = (BASE.datasets || []).map(ds => ({
     id: ds.id, builtin: true,
@@ -467,10 +516,10 @@ function competitions() {
       orphan[key].recs.push(r);
       return;
     }
-    const c = hit, ev = normEvent(r.event) || r.event;
+    const c = hit, ev = evOf(r);
     const dup = (c.records || []).some(x => x.name === r.name
-      && (normEvent(x.event) || x.event) === ev && Math.abs((x.sec || 0) - r.sec) < 0.5);
-    if (!dup) c.records.push(Object.assign({}, r, { event: ev, gathered: true }));
+      && evOf(x) === ev && Math.abs((x.sec || 0) - r.sec) < 0.5);
+    if (!dup) c.records.push(Object.assign({}, r, { event: ev, evRaw: evRawOf(r.event, ev), gathered: true }));
   });
 
   // 只在队员填报里出现过的赛事名 → 自动生成一张临时榜（队长可以一键转成正式比赛）
@@ -480,8 +529,9 @@ function competitions() {
     out.push({
       id: autoId(k), builtin: false, auto: true,
       name: g.meet, short: g.meet, date: dates[dates.length - 1] || '',
-      event: normEvent(g.recs[0].event) || '', note: '', source: '',
-      records: g.recs.map(r => Object.assign({}, r, { event: normEvent(r.event) || r.event, gathered: true })),
+      event: evOf(g.recs[0]), note: '', source: '',
+      records: g.recs.map(r => Object.assign({}, r, { event: evOf(r),
+        evRaw: evRawOf(r.event, evOf(r)), gathered: true })),
     });
   });
 
@@ -646,7 +696,7 @@ function addNewMemberSilently(name, info) {
 function allResults() {
   const out = [], seen = new Set();
   const push = (r, extra) => {
-    const rec = Object.assign({}, r, extra, { event: normEvent(r.event) || r.event });
+    const rec = Object.assign({}, r, extra, { event: evOf(r) });
     const k = [rec.name, rec.event, rec.sec].join('|');
     if (seen.has(k)) return;
     seen.add(k);
@@ -684,7 +734,7 @@ function personalBests() {
   // 手工「单独添加」的个人最好成绩（同样只统计正式队员）
   ov().pbAdded.forEach(p => {
     if (!p.name || !p.sec || !official.has(p.name)) return;
-    const ev = normEvent(p.event) || p.event || '';
+    const ev = evOf(p) || p.event || '';
     const k = p.name + '|' + ev;
     const rec = Object.assign({}, p, {
       event: ev, manual: true, fmt: p.fmt || fmtSec(p.sec),
@@ -716,7 +766,7 @@ function memberBests(name) {
   });
   ov().pbAdded.forEach(p => {                      // 队长单独录入的最好成绩
     if (p.name !== name || !p.sec) return;
-    const k = normEvent(p.event) || '个人最好成绩';
+    const k = evOf(p) || '个人最好成绩';
     if (!m[k] || p.sec < m[k].sec) m[k] = { sec: p.sec, fmt: p.fmt || fmtSec(p.sec), manual: true };
   });
   return m;
@@ -929,6 +979,7 @@ function renderBoard() {
     }
     const guestN = base.filter(r => r.name && !memSet.has(r.name)).length;
     const gatheredN = base.filter(r => r.gathered).length;
+    const fixedN = base.filter(r => r.evRaw).length;      // 项目栏原来写的是「其他」这类认不出的词，按赛事名兜底了
     const sexes = Array.from(new Set(base.map(r => r.sex).filter(Boolean)));
     const mine = ME ? (base.filter(r => r.name === ME)[0] || null) : null;
 
@@ -1001,7 +1052,7 @@ function renderBoard() {
             <td class="pace">${esc(fmtPace(r.sec, r.event))}</td>
             <td class="tiny hide-sm">${pb ? esc(fmtSec(pb)) + (isPb ? ' <span class="tagbadge wheat">PB</span>' : '') : '—'}</td>
             <td class="tiny hide-sm">${esc(r.college || '')}</td>
-            <td class="tiny hide-sm">${esc(r.note || r.rank || '')}</td>
+            <td class="tiny hide-sm">${esc(r.note || r.rank || '')}${r.evRaw ? (r.note || r.rank ? '<br>' : '') + '<span title="项目栏原来写的是认不出来的词，已按赛事名里的距离归到本项目">项目原写「' + esc(r.evRaw) + '」</span>' : ''}</td>
           </tr>`;
         }).join('') : '<tr><td colspan="8" class="empty">这个项目还没有成绩</td></tr>'}
         </tbody>
@@ -1011,6 +1062,7 @@ function renderBoard() {
     <div class="tiny" style="margin-top:10px;line-height:1.9">
       名次按<b>本项目</b>的成绩快慢排（成绩相同并列）；配速按距离折算，半马 21.0975km / 全马 42.195km。
       ${MODE !== 'view' ? '<br>带「本机」的是你自己填的、还没交给队长的成绩；带「PB」的是他/她这个项目的历史最好成绩。' : ''}
+      ${fixedN ? '<br>其中 ' + fixedN + ' 条的项目栏原先是「其他」这类认不出距离的写法，已按赛事名里的距离归到本项目（备注里有标注）。' : ''}
     </div>`;
   }
 
@@ -1305,7 +1357,7 @@ function renderUpload() {
           const c = compFor(r.meet);
           return `
           <tr><td><b>${esc(r.name)}</b>${r.submitted ? ' <span class="tagbadge green">已提交</span>' : ''}${rosterNames.has(r.name) ? '' : ' <span class="tagbadge">非队员</span>'}</td>
-            <td class="tiny">${esc(normEvent(r.event) || r.event)}</td>
+            <td class="tiny">${esc(evOf(r))}</td>
             <td class="tm">${esc(r.fmt || fmtSec(r.sec))}</td><td class="tiny hide-sm">${esc(r.date || '')}</td>
             <td class="tiny hide-sm">${esc(r.meet || '')}${r.rank ? ' · ' + esc(r.rank) : ''}
               ${c ? `<br><a href="#" class="comp-link" data-comp="${esc(c.id)}">看这场的排行榜 →</a>` : ''}</td>
@@ -2369,7 +2421,7 @@ function doImport() {
     const m = String(raw == null ? '' : raw).match(/[（(]\s*(\d+)\s*k/i);
     if (m) ev = (parseInt(m[1], 10) * 1000) + '米';
     out.push({
-      uid: newUid(), name, event: normEvent(ev) || ev, raw: String(raw == null ? '' : raw),
+      uid: newUid(), name, event: evOf({ event: ev, meet: importCfg.meet }), raw: String(raw == null ? '' : raw),
       sec: Math.round(sec * 10) / 10, fmt: fmtSec(sec),
       sex: importCfg.sexCol >= 0 ? String(r[importCfg.sexCol] || '') : '',
       college: importCfg.colCol >= 0 ? String(r[importCfg.colCol] || '') : '',
@@ -2837,7 +2889,7 @@ function pasteParseText(txt) {
     if (!sec) { skip.push('第' + (i + 1) + '行成绩「' + g('res') + '」认不出'); return; }
     const note = g('note');
     rows.push({
-      uid: newUid(), name: name, event: normEvent(g('event')) || '5000米',
+      uid: newUid(), name: name, event: (evOf({ event: g('event'), meet: note }) || '5000米'),
       sec: Math.round(sec * 10) / 10, fmt: fmtSec(sec),
       date: g('date') || todayStr(), meet: note, note: note, rank: note, ts: Date.now(),
     });
@@ -3943,7 +3995,7 @@ function pbListAll() {
   });
   return Object.keys(m).map(k => m[k]).filter(p => !hid.has(p.uid || (p.name + '|' + p.event)))
     // event 统一成标准距离名方便看；_key 保留原值，删除功能不受影响
-    .map(p => Object.assign({}, p, { _key: p.uid || (p.name + '|' + p.event), event: normEvent(p.event) || p.event }));
+    .map(p => Object.assign({}, p, { _key: p.uid || (p.name + '|' + p.event), event: evOf(p) }));
 }
 /** 一行一条：姓名,项目,成绩[,日期,备注] */
 function pbParseText(txt) {
@@ -3956,7 +4008,7 @@ function pbParseText(txt) {
     if (!p[0] || !p[1] || !p[2]) { skip.push('第' + (i + 1) + '行少列（要 姓名,项目,成绩）'); return; }
     const sec = parseSec(p[2], p[1]);
     if (!sec) { skip.push('第' + (i + 1) + '行「' + p[2] + '」认不出成绩'); return; }
-    rows.push({ uid: pbUid(), name: p[0], event: normEvent(p[1]) || p[1], sec: sec, fmt: fmtSec(sec),
+    rows.push({ uid: pbUid(), name: p[0], event: evOf({ event: p[1], meet: p[4] }), sec: sec, fmt: fmtSec(sec),
                 date: p[3] || '', note: p[4] || '' });
   });
   return { rows: rows, skip: skip };
@@ -4514,7 +4566,7 @@ function bindManage() {
     const mine = myResults();
     if (!cur || !mine.length) return toast('没有可并入的成绩');
     addCompRecords(cur.id, mine.map(r => Object.assign({}, r, {
-      event: normEvent(r.event) || r.event, note: r.note || r.rank || '',
+      event: evOf(r), note: r.note || r.rank || '',
     })));
     setMyResults([]);
     toast('已把 ' + mine.length + ' 条并入「' + cur.name + '」（记得同步到线上）', 4200);
