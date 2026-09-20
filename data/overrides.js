@@ -788,6 +788,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789837741298,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu963tmo_2_ry0w",
+   "name": "王涛",
+   "event": "4000米",
+   "sec": 870,
+   "fmt": "14:30",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789869531840,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2221,6 +2234,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789837667285,
    "sex": "男",
    "college": "化学与药学院"
+  },
+  {
+   "uid": "rmu963skd_1_pxb2",
+   "name": "时梓涵",
+   "event": "半马",
+   "sec": 4890,
+   "fmt": "1:21:30",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789869530461,
+   "sex": "男",
+   "college": "资环学院"
   }
  ],
  "pbHidden": [
@@ -2411,5 +2437,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-19T17:09:04.083Z"
+ "updated": "2026-09-20T01:58:52.492Z"
 };
