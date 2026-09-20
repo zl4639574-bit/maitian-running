@@ -626,6 +626,12 @@ window.TEAM_OVERRIDES = {
    "major": "应化2501",
    "grade": "2025级",
    "photo": "images/avatars/mj3bv.jpg"
+  },
+  "邓天昊": {
+   "sex": "男",
+   "college": "资源环境学院",
+   "major": "资环2402",
+   "grade": "2024"
   }
  },
  "newMembers": [
@@ -799,6 +805,45 @@ window.TEAM_OVERRIDES = {
    "meet": "2026.9.19高百选拔4km测速",
    "rank": "",
    "ts": 1789869531840,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu963tmo_2_ry0w",
+   "name": "王涛",
+   "event": "4000米",
+   "sec": 870,
+   "fmt": "14:30",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789869531840,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu963unr_3_tbsz",
+   "name": "姚语熙",
+   "event": "3000米",
+   "sec": 670,
+   "fmt": "11:10",
+   "date": "2026.05.23",
+   "meet": "春季场地测速",
+   "rank": "女子乙组第三名",
+   "ts": 1789869533175,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu963unr_4_34cp",
+   "name": "姚语熙",
+   "event": "其他4km",
+   "sec": 1018,
+   "fmt": "16:58",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "女子组第一",
+   "ts": 1789869533175,
    "local": false,
    "published": true
   },
@@ -2286,6 +2331,58 @@ window.TEAM_OVERRIDES = {
    "ts": 1789869530461,
    "sex": "男",
    "college": "资环学院"
+  },
+  {
+   "uid": "rmu963w9p_5_1k8v",
+   "name": "邓天昊",
+   "event": "3000米",
+   "sec": 600,
+   "fmt": "10:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789869535261,
+   "sex": "男",
+   "college": "资源环境学院"
+  },
+  {
+   "uid": "rmu963w9p_6_ysjj",
+   "name": "邓天昊",
+   "event": "5000米",
+   "sec": 1080,
+   "fmt": "18:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789869535261,
+   "sex": "男",
+   "college": "资源环境学院"
+  },
+  {
+   "uid": "rmu963w9p_7_0ua4",
+   "name": "邓天昊",
+   "event": "10000米",
+   "sec": 2400,
+   "fmt": "40:00",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789869535261,
+   "sex": "男",
+   "college": "资源环境学院"
+  },
+  {
+   "uid": "rmu963w9p_8_9avi",
+   "name": "邓天昊",
+   "event": "半马",
+   "sec": 12436,
+   "fmt": "3:27:16",
+   "date": "",
+   "meet": "队员自报",
+   "rank": "",
+   "ts": 1789869535261,
+   "sex": "男",
+   "college": "资源环境学院"
   }
  ],
  "pbHidden": [
@@ -2476,5 +2573,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T01:58:55.031Z"
+ "updated": "2026-09-20T01:58:57.024Z"
 };
