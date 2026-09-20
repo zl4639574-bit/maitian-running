@@ -959,7 +959,7 @@ function renderBoard() {
         你在「${esc(pickEv || '本项目')}」里的成绩：
         <b style="font-size:15px;color:var(--t1)">${esc(mine.fmt || fmtSec(mine.sec))}</b>
         · 第 <b>${mine._rk}</b> 名（共 ${base.length} 人）
-        ${mine.local ? '<br><span style="color:#c0392b">这条还只存在你这台设备上 —— 点「⚡ 直接提交给队长」或把上报文本发给队长，队伍才看得到。</span>' : ''}
+        ${mine.local ? '<br><span style="color:#c0392b">这条还只存在你这台设备上 —— 点「提交」，队伍才看得到。</span>' : ''}
         ${bestOf[ME] && mine.sec > bestOf[ME] ? '<br>你的个人最好成绩是 <b>' + esc(fmtSec(bestOf[ME])) + '</b>。' : ''}
       </div>
     </div>` : ''}
@@ -1211,7 +1211,7 @@ function renderUpload() {
       <h2 style="margin-bottom:6px">${saved ? '欢迎回来，' + esc(saved) + ' 👋' : '第一次来？先花 1 分钟完善资料 👇'}</h2>
       <div class="tiny" style="margin-bottom:12px">
         ${saved ? '你上次填的资料还在这台手机里（姓名：' + esc(saved) + '）—— 要改就点下面的按钮，不用重填。'
-                : '完善资料 = 姓名 / 性别 / 学院 / 专业 / 年级 / 身份 / 个人最好成绩 / 照片。<br>填完点「复制资料文本」或「导出资料文件」发给队长，队长才能把你写进名册和成绩榜。'}
+                : '完善资料 = 姓名 / 性别 / 学院 / 专业 / 年级 / 身份 / 个人最好成绩 / 照片。<br>填完点「提交」，队长那边就收到了，不用发微信。'}
       </div>
       <div class="chips">
         <button class="btn" data-go="me">${saved ? '完善 / 修改我的资料 →' : '开始完善我的资料 →'}</button>
@@ -1220,14 +1220,6 @@ function renderUpload() {
       <div class="tiny" style="margin-top:10px">两件事互不影响：资料填一次就行，成绩每次比赛都能报。</div>
     </div>`;
   })() : ''}
-
-  ${rep ? `<div class="notice" style="margin-bottom:16px">
-    <b>怎么把成绩交给队长（三步）</b><br>
-    ① 下面把这次比赛/测速的成绩一条条填进来（填错可以删了重填）；<br>
-    ② 拉到底点「复制成上报文本」，或者点「导出 CSV」存成一个小文件；<br>
-    ③ 把这段文字（或那个文件）发到队群，或者直接发给队长。<br>
-    <span class="tiny">不用登录、不用密码，填的内容只存在你自己手机里，不会自动上传任何东西。</span>
-  </div>` : ''}
 
   <div class="card sec">
     <h2>① 录入一条成绩</h2>
@@ -1286,7 +1278,7 @@ function renderUpload() {
   ${batch ? `
   <div class="card sec">
     <h2>① 收件箱（队员直接提交的）</h2>
-    <div class="tiny" style="margin-bottom:8px">队员在收集页点「⚡ 直接提交给队长」的内容都在这儿（存在仓库 data/inbox/）。
+    <div class="tiny" style="margin-bottom:8px">队员在收集页点「提交」的内容都在这儿（存在仓库 data/inbox/）。
       <b>接收</b>后就写进你的本机，再去「数据管理 → 比赛成绩 / 队员名册」同步上线；<b>丢弃</b>会把这条从收件箱删掉。</div>
     <div class="chips"><button class="btn ghost" id="btnInboxLoad">读取收件箱</button>
       <span class="tiny">${relayCfg() ? '收件服务已配置' : '（还没配收件服务：去「数据管理 → 同步」填一次）'}</span></div>
@@ -1296,10 +1288,11 @@ function renderUpload() {
   <div class="card sec">
     <div class="sec-head"><h2>${rep ? '我填的成绩（' + L.length + ' 条）' : (batch ? '③' : '②') + ' 我录入的成绩'}</h2>
       <div class="chips">
-        ${rep && relayCfg() ? `<button class="btn sm" id="btnSend" ${L.length ? '' : 'disabled'}>⚡ 直接提交给队长（不用发微信）</button>` : ''}
-        ${rep ? `<button class="btn ${relayCfg() ? 'ghost' : ''} sm" id="btnShare" ${L.length ? '' : 'disabled'}>📤 发给队长（微信）</button>` : ''}
-        <button class="btn ${rep ? 'ghost' : ''} sm" id="btnCopy" ${L.length ? '' : 'disabled'}>${rep ? '复制成上报文本（发队长）' : '复制成文本'}</button>
-        <button class="btn ghost sm" id="btnCsv" ${L.length ? '' : 'disabled'}>导出 CSV</button>
+        ${rep ? (relayCfg()
+          ? `<button class="btn sm" id="btnSend" ${L.length ? '' : 'disabled'}>提交</button>`
+          : `<button class="btn sm" id="btnShare" ${L.length ? '' : 'disabled'}>提交（发给队长）</button>`) : ''}
+        ${rep ? '' : `<button class="btn sm" id="btnCopy" ${L.length ? '' : 'disabled'}>复制成文本</button>
+        <button class="btn ghost sm" id="btnCsv" ${L.length ? '' : 'disabled'}>导出 CSV</button>`}
         <button class="btn danger sm" id="btnClear" ${L.length ? '' : 'disabled'}>清空</button>
       </div>
     </div>
@@ -1335,25 +1328,23 @@ function renderUpload() {
 
     <div class="notice" style="margin-top:16px">
       ${batch ? '成绩先存在<b>本机</b>；点上面的「发布并同步到线上」，全队才能看到。'
-              : '这里的成绩只保存在<b>你这台设备的浏览器</b>里，别人看不到自己手机上的这一份。'}
+        : (rep ? '成绩先存在<b>你这台手机的浏览器</b>里 —— 点上面的<b>提交</b>，队长那边就收到了，不用发微信。'
+               : '这里的成绩只保存在<b>你这台设备的浏览器</b>里，别人看不到自己手机上的这一份。')}
     </div>
   </div>
 
-  ${batch ? '' : `
+  ${(!batch && QUEUE_CFG && QUEUE_CFG.token) ? `
   <div class="card sec">
-    <h2>③ 提交给全队（不用经过队长）</h2>
-    ${QUEUE_CFG && QUEUE_CFG.token ? `
-      <div class="tiny" style="line-height:1.9;margin-bottom:14px">
-        点下面的按钮，把还没提交的成绩送到队里的收集仓库，<b>几分钟后自动进全队成绩榜</b>，
-        不用等队长操作。已经提交过的会标上「已提交」。
-      </div>
-      <button class="btn" id="btnSubmitAll" ${L.filter(r => !r.submitted).length ? '' : 'disabled'}>
-        提交 ${L.filter(r => !r.submitted).length} 条给全队
-      </button>
-      <span class="tiny" style="margin-left:10px">提交后可以随时在队长版的「比赛成绩」里被删掉</span>` : `
-      <div class="notice">还没开通「队员直传」。让队长在<b>队长版 → 数据管理 → 队员直传</b>里开通，
-        之后你就能一键把成绩送上全队榜。</div>`}
-  </div>`}`;
+    <h2>直接进全队榜（队员直传）</h2>
+    <div class="tiny" style="line-height:1.9;margin-bottom:14px">
+      点下面的按钮，把还没提交的成绩送到队里的收集仓库，<b>几分钟后自动进全队成绩榜</b>，不用等队长操作。
+      已经提交过的会标上「已提交」。
+    </div>
+    <button class="btn" id="btnSubmitAll" ${L.filter(r => !r.submitted).length ? '' : 'disabled'}>
+      提交 ${L.filter(r => !r.submitted).length} 条给全队
+    </button>
+    <span class="tiny" style="margin-left:10px">提交后可以随时在队长版的「比赛成绩」里被删掉</span>
+  </div>` : ''}`;
 }
 
 /* ------------------------------------------------- 渲染：数据管理（队长版） */
@@ -1440,7 +1431,7 @@ function renderManage() {
     </div>
     <div class="tiny" style="margin:14px 0 6px;line-height:1.7">
       <b>收件中转（队员"直接提交"用，可选）</b>：照 云端中转/scf/部署说明.txt 把云函数建好后，
-      把它的访问地址和队伍口令填在这里 → 保存设置 → 同步，队员端就会出现「⚡ 直接提交给队长」。
+      把它的访问地址和队伍口令填在这里 → 保存设置 → 同步，队员端就会出现「提交」按钮。
       地址和口令不含任何令牌，可以放心同步。
     </div>
     <div class="grid2">
@@ -2138,19 +2129,9 @@ function bindUpload() {
   if (mOther) mOther.oninput = updMeetHint;
   if (msel) updMeetHint();
 
-  const sd = $('#btnSend');
-  if (sd) sd.onclick = async () => {
-    sd.disabled = true; sd.textContent = '提交中…';
-    const payload = { date: todayStr(), rows: myResults().map(r => ({ name: r.name, event: r.event,
-      fmt: r.fmt || fmtSec(r.sec), sec: r.sec, date: r.date, meet: r.meet || '', rank: r.rank || '' })) };
-    const res = await postToRelay('scores', payload);
-    sd.disabled = false; sd.textContent = '⚡ 直接提交给队长（不用发微信）';
-    if (res.ok) { toast('已提交给队长 ✅ 不用再发微信了（他想导入时在收件箱里就能看到）', 9000); }
-    else { toast('直接提交没成功：' + res.error + '。已改用分享/复制，一样能交给队长', 11000); }
-  };
-
-  const sh = $('#btnShare');
-  if (sh) sh.onclick = async () => {
+  /* 队员端只留这一个「提交」：配置了收件服务就直接传；传不动就自动走「发给队长」，
+     不让队员白填一遍（以前失败只提示一句"改用分享/复制"，现在是真的自动退回） */
+  const shareScores = async () => {
     const lines = ['麦田守望 · 成绩上报（' + todayStr() + '）',
       '姓名\t项目\t成绩\t日期\t赛事/名次']
       .concat(myResults().map(r => [r.name, r.event, r.fmt || fmtSec(r.sec), r.date, r.meet || r.rank || ''].join('\t')));
@@ -2162,6 +2143,23 @@ function bindUpload() {
       tip: '麦田守望 成绩上报（' + myResults().length + ' 条），请队长导入' });
     shareToast(r, '成绩');
   };
+
+  const sd = $('#btnSend');
+  if (sd) sd.onclick = async () => {
+    sd.disabled = true; sd.textContent = '提交中…';
+    const payload = { date: todayStr(), rows: myResults().map(r => ({ name: r.name, event: r.event,
+      fmt: r.fmt || fmtSec(r.sec), sec: r.sec, date: r.date, meet: r.meet || '', rank: r.rank || '' })) };
+    const res = await postToRelay('scores', payload);
+    sd.disabled = false; sd.textContent = '提交';
+    if (res.ok) { toast('已提交 ✅ 队长那边马上就收到了，不用再发微信', 9000); }
+    else {
+      toast('直接提交没成功（' + res.error + '），正在改用「发给队长」…', 12000);
+      await shareScores();
+    }
+  };
+
+  const sh = $('#btnShare');
+  if (sh) sh.onclick = shareScores;
 
   const cp = $('#btnCopy');
   if (cp) cp.onclick = () => {
@@ -2461,9 +2459,8 @@ function renderMe() {
 
   <div class="notice" style="margin-bottom:16px">
     <b>填完怎么交给队长</b><br>
-    ① 把下面填好（最好成绩没有的就填「无」）；② 点「复制资料文本」或「导出资料文件（含照片）」；<br>
-    ③ 发给队长，队长会把它写进队员名册和成绩榜。<br>
-    <span class="tiny">不用登录、不会自动上传；照片只在你自己手机上，随资料文件发给队长。</span>
+    把下面填好（最好成绩没有的就填「无」），拉到底点<b>提交</b>，队长那边就收到了，不用发微信。<br>
+    <span class="tiny">不用登录；照片只在你自己手机上，随资料一起交给队长。</span>
   </div>
 
   <div class="card sec">
@@ -2508,13 +2505,11 @@ function renderMe() {
       <button class="btn danger sm" id="mePhotoDel">删除照片</button></div>` : ''}
 
     <div class="chips" style="margin-top:20px">
-      <button class="btn" id="meSave">保存资料</button>
-      ${relayCfg() ? `<button class="btn" id="meSend" ${d.name ? '' : 'disabled'}>⚡ 直接提交给队长（不用发微信）</button>` : ''}
-      <button class="btn ${relayCfg() ? 'ghost' : ''}" id="meShare" ${d.name ? '' : 'disabled'}>📤 发给队长（微信）</button>
-      <button class="btn ghost" id="meCopy" ${d.name ? '' : 'disabled'}>复制资料文本</button>
-      <button class="btn ghost" id="meExport" ${d.name ? '' : 'disabled'}>导出资料文件（含照片）</button>
+      <button class="btn ${relayCfg() ? 'ghost' : ''}" id="meSave">保存资料</button>
+      ${relayCfg()
+        ? `<button class="btn" id="meSend" ${d.name ? '' : 'disabled'}>提交</button>`
+        : `<button class="btn" id="meShare" ${d.name ? '' : 'disabled'}>提交（发给队长）</button>`}
     </div>
-    <div class="tiny" style="margin-top:8px">「资料文件」是一个 .json 小文件，里面连照片一起打包，队长选这个文件就能一次导入。</div>
   </div>`;
 }
 
@@ -2540,18 +2535,8 @@ function bindMe() {
   });
   const sv = $('#meSave');
   if (sv) sv.onclick = () => { const d = save(); toast('已保存到本机：' + (d.name || '（还没填姓名）'), 5000); render(); };
-  const sd2 = $('#meSend');
-  if (sd2) sd2.onclick = async () => {
-    sd2.disabled = true; sd2.textContent = '提交中…';
-    const d3 = save();
-    const res = await postToRelay('member', d3);
-    sd2.disabled = false; sd2.textContent = '⚡ 直接提交给队长（不用发微信）';
-    if (res.ok) toast('资料已提交给队长 ✅（含照片）', 9000);
-    else toast('直接提交没成功：' + res.error + '。已改用分享/复制，一样能交给队长', 11000);
-  };
-
-  const sh2 = $('#meShare');
-  if (sh2) sh2.onclick = async () => {
+  /* 资料也一样：只留一个「提交」；传不动就自动走「发给队长」，别让队员卡在半路 */
+  const shareMe = async () => {
     const d2 = save();
     const n = String(d2.pb && (d2.pb['5000米'] || d2.pb['3000米'] || '') || '').trim();
     const r = await shareToCaptain({ text: meText(d2),
@@ -2559,15 +2544,22 @@ function bindMe() {
       tip: '麦田守望 队员资料：' + (d2.name || '') + (n ? '（5000米 ' + n + '）' : '') + '，请队长导入' });
     shareToast(r, '资料' + (d2.photo ? '和照片' : ''));
   };
-
-  const cp = $('#meCopy');
-  if (cp) cp.onclick = () => { copyText(meText(save())); toast('资料文本已复制，粘给队长即可', 6000); };
-  const ex = $('#meExport');
-  if (ex) ex.onclick = () => {
-    const d = save();
-    download('麦田守望_我的资料_' + (d.name || '未填') + '.json', JSON.stringify(d, null, 1));
-    toast('已导出，把这个文件发给队长', 6000);
+  const sd2 = $('#meSend');
+  if (sd2) sd2.onclick = async () => {
+    sd2.disabled = true; sd2.textContent = '提交中…';
+    const d3 = save();
+    const res = await postToRelay('member', d3);
+    sd2.disabled = false; sd2.textContent = '提交';
+    if (res.ok) toast('资料已提交 ✅（含照片）队长那边马上就能看到', 9000);
+    else {
+      toast('直接提交没成功（' + res.error + '），正在改用「发给队长」…', 12000);
+      await shareMe();
+    }
   };
+
+  const sh2 = $('#meShare');
+  if (sh2) sh2.onclick = shareMe;
+
   const drop = $('#mePhotoDrop'), fi = $('#mePhotoFile');
   if (drop && fi) {
     drop.onclick = () => fi.click();
