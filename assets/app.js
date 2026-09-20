@@ -189,17 +189,21 @@ function distFromForm(id) {
   return normEvent(sel.value) || sel.value;
 }
 
-/** 项目下拉框的联动（选「其他」时露出输入框）。每次 render 后统一挂一次 */
+/** 下拉框的联动（选「其他」时露出输入框）。每次 render 后统一挂一次。
+    ⚠️ render() 里 bindUpload() 先跑、这里后跑 —— 所以不能直接覆盖 onchange，
+       页面自己挂的附加逻辑要留在 __onChange 上，这里串行调用它（否则会被这行吃掉） */
 function wireDistSelects() {
-  $$('.dist-sel').forEach(sel => {
+  $$('.dist-sel, .meet-sel').forEach(sel => {
     const other = document.getElementById(sel.dataset.other || '');
-    if (!other) return;
     const sync = (focus) => {
       const on = sel.value === '__other__';
-      other.style.display = on ? '' : 'none';
-      if (on && focus) other.focus();
+      if (other) {
+        other.style.display = on ? '' : 'none';
+        if (on && focus) other.focus();
+      }
     };
-    sel.onchange = () => sync(true);
+    const extra = sel.__onChange;
+    sel.onchange = (e) => { sync(true); if (extra) extra.call(sel, e); };
     sync(false);
   });
 }
@@ -1241,10 +1245,10 @@ function renderUpload() {
       <div class="field"><label>性别</label><select id="f_sex"><option value="">未填</option><option>男</option><option>女</option></select></div>
       <div class="field"><label>学院</label><input id="f_college" placeholder="例如 林学院"></div>
       <div class="field"><label>名次（可选）</label><input id="f_rank" placeholder="例如 大学生组第 5"></div>
-      <div class="field"><label>赛事名称 / 备注</label>
-        <input id="f_meet" placeholder="例如 2026 杨凌马拉松" list="meetList" autocomplete="off">
-        <datalist id="meetList">${meetCandidates().map(c => `<option value="${esc(c.label)}">`).join('')}</datalist>
-        <div class="tiny" id="meetHint" style="margin-top:4px">打几个字就会自动对上已有的赛事名；填了就能在「赛事成绩」里看到这场比赛的排行榜</div>
+      <div class="field"><label>赛事名称</label>
+        ${meetSelectHtml('f_meet', '', { empty: '不填 / 自己练习，不参赛',
+          extra: '从列表里挑一场（最近的排最前）。列表里没有的，选「＋ 新赛事」自己填' })}
+        <div class="tiny" id="meetHint" style="margin-top:4px"></div>
       </div>
     </div>
     <button class="btn" id="btnAdd">添加到我的成绩</button>
@@ -1670,7 +1674,7 @@ function renderManage() {
         <div class="field"><label>项目 *</label>${distSelectHtml('pb_event', '', { empty: '请选择项目' })}</div>
         <div class="field"><label>成绩 *</label><input id="pb_time" placeholder="1:23:29 或 17:02"></div>
         <div class="field"><label>日期</label><input id="pb_date" placeholder="2025.4.21"></div>
-        <div class="field"><label>赛事 / 备注</label><input id="pb_note" placeholder="杨凌马拉松"></div>
+        <div class="field"><label>赛事 / 备注</label>${meetSelectHtml('pb_note', '', { empty: '不填 / 只是队内自己跑' })}</div>
       </div>
       <button class="btn" id="btnAddPb">添加这条成绩</button>
       <span class="tiny" style="margin-left:10px">加完点「同步我的修改到线上」发布</span>
@@ -2060,15 +2064,16 @@ function bindUpload() {
     if (!ev) return toast('请选项目 / 距离');
     const sec = parseSec(raw, ev);
     if (!sec) return toast('成绩没看懂，试试 18:35 或 1:23:22');
+    const meet = meetFromForm('f_meet');
     addMyResults([{
       uid: newUid(), name, event: ev, raw, sec: Math.round(sec * 10) / 10, fmt: fmtSec(sec),
       sex: $('#f_sex').value, college: ($('#f_college').value || '').trim(),
       date: ($('#f_date').value || '').trim() || todayStr(),
       rank: ($('#f_rank').value || '').trim(),
-      meet: ($('#f_meet').value || '').trim(), ts: Date.now(),
+      meet: meet, ts: Date.now(),
     }]);
     toast('已记录：' + name + ' ' + ev + ' ' + fmtSec(sec)
-      + '（填了赛事名就会出现在那场比赛的排行榜里）', 5000);
+      + (meet ? '（会出现在「' + meet + '」的排行榜里）' : '（没选赛事，只进个人最好成绩）'), 6000);
     render();
   };
 
@@ -2105,24 +2110,33 @@ function bindUpload() {
     fi.onchange = () => { if (fi.files[0]) readTableFile(fi.files[0]); };
   }
 
-  const mi = $('#f_meet');
-  if (mi) mi.oninput = () => {
+  // 赛事名：从下拉框里选，不再让队员手打（手打的「杨凌半马」「杨凌半程马拉松」归不到同一场）
+  const msel = $('#f_meet');
+  const updMeetHint = () => {
     const h = $('#meetHint');
-    if (!h) return;
-    const v = mi.value.trim();
-    if (!v) { h.innerHTML = '打几个字就会自动对上已有的赛事名'; return; }
+    if (!h || !msel) return;
+    const v = meetFromForm('f_meet');
+    if (!v) { h.innerHTML = '不填也能记成绩，只是不会出现在某场比赛的排行榜里'; return; }
     const m = meetMatch(v);
     if (m && meetNorm(m.label) === meetNorm(v)) {
-      h.innerHTML = '✅ 对上了已有赛事：<b>' + esc(m.label) + '</b>';
-    } else if (m) {
-      h.innerHTML = '≈ 最像已有赛事：<b>' + esc(m.label) + '</b>　'
-        + '<a href="#" id="meetUse">用这个</a>　（不点它就会算成新赛事）';
-      const u = $('#meetUse');
-      if (u) u.onclick = (e) => { e.preventDefault(); mi.value = m.label; mi.oninput(); };
-    } else {
-      h.innerHTML = '🆕 这是新赛事名（队长那边会新建/合并这一场）';
+      h.innerHTML = '✅ 会记到这场比赛：<b>' + esc(m.label) + '</b>，交上去就能在那场的排行榜里看到自己';
+      return;
     }
+    if (m) {
+      h.innerHTML = '≈ 最像已有赛事：<b>' + esc(m.label) + '</b>　<a href="#" id="meetUse">就选它</a>　（不点它就算成一场新赛事）';
+      const u = $('#meetUse');
+      if (u) u.onclick = (e) => { e.preventDefault(); meetSelectSet('f_meet', m.label); updMeetHint(); };
+      return;
+    }
+    h.innerHTML = '🆕 这是新赛事名 —— 队长那边会新建这一场';
   };
+  if (msel) {
+    msel.__onChange = updMeetHint;                    // 交给 wireDistSelects() 串行调用（别直接写 onchange）
+    msel.oninput = updMeetHint;                       // select 也发 input 事件，双保险
+  }
+  const mOther = $('#f_meet_other');
+  if (mOther) mOther.oninput = updMeetHint;
+  if (msel) updMeetHint();
 
   const sd = $('#btnSend');
   if (sd) sd.onclick = async () => {
@@ -2723,6 +2737,82 @@ function meetMatch(v) {
     if (!best || sc > best.sc) best = { sc: sc, label: c.label, id: c.id };
   });
   return (best && best.sc >= 0.45) ? best : null;
+}
+
+/* ---------------- 赛事名下拉框（不让队员手打赛事名） ----------------
+   为什么要有：队员手打「杨凌半马」「杨凌半程马拉松」，字面差一点就归不到同一场，
+   榜就散了。所以列出已有比赛让他挑；列表里没有的才允许自己填。
+   注意：**所有**已知比赛都列出来（哪怕还没有成绩）—— 队长刚建好的比赛，
+   队员这时候就该能选上，否则还会以「这场比赛里看不到自己」收场。 */
+
+/** 赛事下拉框的候选：全部已有比赛，按日期从近到远，按归一名的 key 去重 */
+function meetPickList() {
+  const seen = {}, out = [];
+  competitions().forEach(c => {
+    const name = String(c.name || '').trim();
+    if (!name || NOT_A_MEET.test(name)) return;
+    const k = meetKey(name) || name;
+    if (seen[k]) return;
+    seen[k] = 1;
+    out.push({ label: name, key: k, id: c.id, auto: !!c.auto, date: c.date || '' });
+  });
+  return out;
+}
+
+/** 赛事名下拉框：opt.empty 给了就先插一个空选项（可以不选），opt.extra 是选项下方的提示 */
+function meetSelectHtml(id, val, opt) {
+  opt = opt || {};
+  const cur = String(val || '').trim();
+  const list = meetPickList();
+  let exact = '';
+  if (cur) {
+    const ck = meetKey(cur);
+    for (let i = 0; i < list.length && !exact; i++) {
+      if (list[i].key === ck || sameMeet(list[i].label, cur)) exact = list[i].label;
+    }
+  }
+  const custom = !!cur && !exact;                     // 现有列表里没有这个名字 → 落在「自己填」
+  const head = opt.empty ? `<option value=""${cur ? '' : ' selected'}>${esc(opt.empty)}</option>` : '';
+  const body = list.map(x => `<option value="${esc(x.label)}"${x.label === exact ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
+  return `<select id="${esc(id)}" class="sel meet-sel" data-other="${esc(id)}_other">${head}${body}`
+    + `<option value="__other__"${custom ? ' selected' : ''}>＋ 新赛事 / 不在上面（自己填）</option></select>`
+    + `<input id="${esc(id)}_other" class="meet-other" placeholder="例如 2026 杨凌马拉松" autocomplete="off"`
+    + ` value="${custom ? esc(cur) : ''}" style="margin-top:6px${custom ? '' : ';display:none'}">`
+    + (opt.extra ? `<div class="tiny" style="margin-top:4px">${opt.extra}</div>` : '');
+}
+
+/** 从赛事下拉框读回真正的赛事名（选了「新赛事」就用旁边那个输入框） */
+function meetFromForm(id) {
+  const sel = document.getElementById(id);
+  if (!sel) return '';
+  if (sel.value === '__other__') {
+    const o = document.getElementById(id + '_other');
+    return (o && o.value || '').trim();
+  }
+  return String(sel.value || '').trim();
+}
+
+/** 把下拉框设成某个赛事名；列表里没有这个名字就落到「自己填」并写进去。
+    返回 true = 命中了已有选项（供提示语区分「已对上」还是「算新赛事」） */
+function meetSelectSet(id, name) {
+  const sel = document.getElementById(id);
+  if (!sel) return false;
+  const target = String(name || '').trim();
+  let hit = false;
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === target && target) { hit = true; break; }
+  }
+  if (hit) {
+    sel.value = target;
+    const other = document.getElementById(id + '_other');
+    if (other) other.value = '';
+  } else {
+    sel.value = '__other__';
+    const other = document.getElementById(id + '_other');
+    if (other) other.value = target;
+  }
+  if (sel.onchange) sel.onchange({ target: sel });
+  return hit;
 }
 
 /* ---------------- 粘贴文本导入（队员上报的文字直接用）---------------- */
@@ -4184,7 +4274,7 @@ function bindManage() {
     const l = ovLocal();
     l.pbAdded = l.pbAdded || [];
     l.pbAdded.push({ uid: pbUid(), name: name, event: event, sec: sec, fmt: fmtSec(sec),
-                     date: ($('#pb_date').value || '').trim(), note: ($('#pb_note').value || '').trim() });
+                     date: ($('#pb_date').value || '').trim(), note: meetFromForm('pb_note') });
     saveLocalOv();
     toast('已记下 ' + name + ' 的 ' + event + ' ' + fmtSec(sec) + ' —— 记得点「同步我的修改到线上」发布', 9000);
     render();
