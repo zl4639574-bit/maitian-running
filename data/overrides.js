@@ -990,6 +990,58 @@ window.TEAM_OVERRIDES = {
    "ts": 1789897832036,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu9myhcy_2_bar5",
+   "name": "王涛",
+   "event": "4000米",
+   "sec": 870,
+   "fmt": "14:30",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789897836130,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu9myhqw_3_f0ib",
+   "name": "王涛",
+   "event": "4000米",
+   "sec": 870,
+   "fmt": "14:30",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789897836632,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu9myhwk_4_1xta",
+   "name": "王涛",
+   "event": "4000米",
+   "sec": 870,
+   "fmt": "14:30",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789897836836,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu9myi5b_5_uu1l",
+   "name": "王涛",
+   "event": "4000米",
+   "sec": 870,
+   "fmt": "14:30",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789897837151,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2712,5 +2764,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T09:50:33.470Z"
+ "updated": "2026-09-20T09:50:37.197Z"
 };
