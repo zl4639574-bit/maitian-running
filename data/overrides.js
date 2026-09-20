@@ -924,6 +924,19 @@ window.TEAM_OVERRIDES = {
    "ts": 1789869533175,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu98mg73_1_i344",
+   "name": "罗胜文",
+   "event": "4000米",
+   "sec": 824,
+   "fmt": "13:44",
+   "date": "2026.09.20",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "第二",
+   "ts": 1789873760127,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2638,5 +2651,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T02:58:43.710Z"
+ "updated": "2026-09-20T03:09:22.729Z"
 };
