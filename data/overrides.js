@@ -613,7 +613,8 @@ window.TEAM_OVERRIDES = {
    "sex": "女",
    "college": "食品学院",
    "major": "营养2501",
-   "grade": "2024"
+   "grade": "2024",
+   "photo": "images/avatars/mijkfl.jpg"
   },
   "王尚": {
    "photo": "images/avatars/mk5pr.jpg"
@@ -2699,5 +2700,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T09:46:57.527Z"
+ "updated": "2026-09-20T09:50:14.632Z"
 };
