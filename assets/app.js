@@ -242,7 +242,7 @@ function ov() {
       const m = {};
       (c.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });
       (l.newMembers || []).forEach(x => { if (x && x.name) m[x.name] = x; });   // 本机的覆盖云端
-      // 新增队员没填身份 → 默认「正式」；不然会被加进去却不出现在公开名册里
+      // 新增队员没填身份 → 默认「正式」（身份只是标注，不影响显不显示）
       return Object.keys(m).map(k => {
         const x = m[k];
         if (!(x.level || []).length) return Object.assign({}, x, { level: ['正式'] });
@@ -348,9 +348,8 @@ function teamInfo() {
   });
 }
 
-/** 名册：只保留正式 / 预备 队员，去掉被删的，套用修改
-    ⚠️ 身份必须"先套上改后的、再判断"，否则把原始身份「队员」的人改成「正式」永远不生效
-    （2026-09-15 修：队员资料导入 / 队员数据表里把身份填成「正式」，公开名册却一直不出现） */
+/** 名册：**所有身份的人都显示**（2026-09-20 起：不再按身份隐藏「普通 / 队员」的人，
+    只把「已移除」名单里的人拿掉），并套用队长改过的资料 */
 /** 一条成绩的身份（删除/恢复都按它认，不能用下标 —— 列表里云端成绩排在前面，下标对不上） */
 function resultKey(r) {
   if (!r) return '';
@@ -369,28 +368,27 @@ function removedResults() {
 function rosterList() {
   const o = ov();
   const hidden = new Set(o.hidden);
-  const KEEP = ['正式', '预备'];
   const fromBase = (BASE.roster || [])
     .filter(m => !hidden.has(m.name))
     .map(m => {
       const e = o.memberEdits[m.name] || {};
-      // 明确改过身份（含改成空 = 不进公开名册）就听改后的；从没改过才用原始身份
+      // 明确改过身份（含改成空 = 未分级）就听改后的；从没改过才用原始身份
       const lv = (e.level === undefined || e.level === null) ? (m.level || []) : e.level;
-      return Object.assign({}, m, e, { level: (lv || []).filter(l => KEEP.indexOf(l) >= 0) });
-    })
-    .filter(m => m.level.length);
+      return Object.assign({}, m, e, { level: (lv || []).slice() });
+    });
   // 队长在「队员名册」里手动添加的新队员
   const added = (o.newMembers || [])
     .filter(m => !hidden.has(m.name))
-    .filter(m => (m.level || []).some(l => l === '正式' || l === '预备'));
+    .map(m => Object.assign({}, m, { level: (m.level || []).slice() }));
   return fromBase.concat(added);
 }
 
-/** 身份的三档：正式 / 预备 会进公开名册；普通 = 队里的人但不进公开名册（和原始名册里的「队员」同义） */
-const LEVELS = ['正式', '预备', '普通'];
+/** 身份可选值：正式 / 预备 / 普通 / 队员（「普通」和原始名册里写的「队员」是一个意思）。
+    2026-09-20 起身份不再决定显不显示 —— 名册显示所有人员，身份只当标签用 */
+const LEVELS = ['正式', '预备', '普通', '队员'];
 
 /** 「身份」文本 → 数组；空/看不懂 → null（= 别动这一项）
-    注意：返回 [] 表示"明确写成空"（数据表的「留空 = 不进公开名册」），跟 null 不是一回事 */
+    注意：返回 [] 表示"明确写成空"（数据表的「留空 = 身份清空，名册里显示成未分级」），跟 null 不是一回事 */
 function normLevelOf(v) {
   const t = String(v == null ? '' : v).trim();
   if (!t || t === '未填' || t === '未分级' || t === '-' || t === '无' || t === '否' || t === '0') return [];
@@ -420,10 +418,11 @@ function effLevel(name) {
   const base = (BASE.roster || []).filter(m => m.name === n)[0];
   return (base && base.level) || [];
 }
-/** 这个身份会不会显示在公开名册里（正式/预备 = 会） */
+/** 这个身份会不会显示在名册里
+    2026-09-20 起：名册显示**所有**人员，身份不再决定显不显示（只有在「已移除」名单里才不显示），
+    所以恒为 true。保留这个函数是为了别处（体检、导入提示）的调用不用改。 */
 function isVisibleLevel(lv) {
-  const a = lv || [];
-  return a.indexOf('正式') >= 0 || a.indexOf('预备') >= 0;
+  return true;
 }
 
 /** 把一个人从「已移除」里放回来（只在"身份从不可见变成可见"时自动调）
@@ -440,40 +439,22 @@ function unhideMember(name) {
   return true;
 }
 
-/** 自愈：身份已经"从不可见改成可见"（原始身份「队员」→ 正式/预备）的人，
-    如果还躺在「已移除」（overrides.hidden）名单里，自动放回名册（写本机 shown）。
-    ⚠️ 必须写 shown 而不是只改显示：同步时 hidden 要扣掉 shown 里的名字，线上才真的显示。
-    只认"升级"这一种情况 —— 本来身份就是预备/正式、当年被刻意移出显示的那批人不动。 */
-function healRosterHidden() {
-  const o = ov(), l = ovLocal();
-  const hid = o.hidden || [];
-  if (!hid.length) return 0;
-  const base = {};
-  (BASE.roster || []).forEach(m => { base[m.name] = m.level || []; });
-  const add = [];
-  hid.forEach(n2 => {
-    if ((o.shown || []).indexOf(n2) >= 0) return;
-    const e = (o.memberEdits || {})[n2] || {};
-    if (e.level === undefined || e.level === null) return;              // 没改过身份 → 不动
-    if (isVisibleLevel(e.level) && !isVisibleLevel(base[n2])) add.push(n2);   // 升级了 → 放回来
-  });
-  if (!add.length) return 0;
-  l.shown = Array.from(new Set((l.shown || []).concat(add)));
-  saveLocalOv();
-  return add.length;
-}
+/** 以前：身份从「队员」升级成 正式/预备 时，自动把他从「已移除」名单里放回来。
+    2026-09-20 起名册显示**所有**身份的人，身份跟"显不显示"已经没关系了 → 不再自动放回：
+    进了「已移除」就只有手动点「↺ 恢复显示」才回来（队长明确不想显示的人才在那儿）。
+    函数保留成空壳，启动流程还在调它。 */
+function healRosterHidden() { return 0; }
 
 /** 「他为什么不在公开名册里」→ 一句能照做的话（不要只说"已存在"） */
 function rosterHint(name) {
   const s = rosterStatus(name);
   if (s.inRoster) return '';
-  if (s.inBase) {
-    return '他本来就在原始名册里，但身份是「' + ((s.baseLevel || []).join('/') || '未填') + '」，' +
-      '而公开名册只显示正式/预备 —— 去「数据管理 → 队员名册」搜他的名字，把「身份」改成「正式」再点「保存名册修改」，他就出现在队员名册里了';
+  // 名册现在显示所有身份的人 → 名册里"看不到"只剩一种原因：在「已移除」名单里
+  if (s.inBase || s.isNew || s.removed) {
+    return '他名册里有记录，但被列在「已移除显示」名单里（以前手动移除过）—— 去「数据管理 → 队员名册」往下找' +
+      '「已从名册移除」那一栏，点他的「↺ 恢复显示」，再点一次「同步我的修改到线上」';
   }
-  if (s.isNew) return '他在「队长新增」里但身份不是正式/预备 —— 去「数据管理 → 队员名册」把他的身份改成「正式」';
-  if (s.removed) return '他的身份是正式/预备，但他在「已移除」名单里（以前被移除了）—— 去「数据管理 → 队员名册」往下找「已移除」那一栏，点他的「↺ 恢复显示」，再同步一次';
-  return '名册里完全没有这个人 —— 用「数据管理 → 队员名册 → 批量添加队员」把他加进来（或点上面的「把他加入公开名册」）';
+  return '名册里完全没有这个人 —— 用「数据管理 → 队员名册 → 批量添加队员」把他加进来（或点上面的「把他加入名册」）';
 }
 
 /** 把一个人加进「队长新增」名册（安静地加，不弹窗；同名的人各自一条） */
@@ -511,11 +492,11 @@ function allResults() {
 /** 成绩榜唯一内容：跨表个人最好成绩 */
 function personalBests() {
   const map = {};
-  // 个人最好成绩只统计「正式队员」；非正式的同学只在当时的比赛榜里出现
-  const official = new Set(rosterList().filter(m => (m.level || []).indexOf('正式') >= 0).map(m => m.name));
+  // 名册里的人都进最好成绩榜（2026-09-20 起不再按身份过滤）；名册外的同学（外院/客串）只在当时的比赛榜里出现
+  const inRoster = new Set(rosterList().map(m => m.name));
   allResults().forEach(r => {
     if (!r.name || !r.sec) return;
-    if (!official.has(r.name)) return;
+    if (!inRoster.has(r.name)) return;
     const k = r.name + '|' + (r.event || '');
     if (!map[k] || r.sec < map[k].sec) {
       map[k] = Object.assign({}, r, { event: r.event || '距离未标注' });
@@ -523,9 +504,9 @@ function personalBests() {
       map[k].local = true;
     }
   });
-  // 手工「单独添加」的个人最好成绩（同样只统计正式队员）
+  // 手工「单独添加」的个人最好成绩（同样只认名册里的人）
   ov().pbAdded.forEach(p => {
-    if (!p.name || !p.sec || !official.has(p.name)) return;
+    if (!p.name || !p.sec || !inRoster.has(p.name)) return;
     const k = p.name + '|' + (p.event || '');
     const rec = Object.assign({}, p, {
       manual: true, fmt: p.fmt || fmtSec(p.sec),
@@ -850,7 +831,7 @@ function renderBoard() {
   };
 
   return head + chipsRow + `
-  <p class="sub sec">上面按「一场比赛一张榜」看原始名次（含当时参赛的所有同学）；下面这一张是个人最好成绩，把所有比赛合起来、每人每项只留最快的一次，且<b>只统计正式队员</b>。</p>
+  <p class="sub sec">上面按「一场比赛一张榜」看原始名次（含当时参赛的所有同学）；下面这一张是个人最好成绩，把所有比赛合起来、每人每项只留最快的一次，<b>名册里的人都在里面</b>（名册外的同学只出现在上面单场榜）。</p>
 
   <div class="toolbar">
     <div class="chips">
@@ -911,11 +892,17 @@ function renderBoard() {
 /* ---------------------------------------------------------- 渲染：队员名册 */
 
 function renderRoster() {
-  let list = rosterList();
+  const all = rosterList();
+  let list = all.slice();
   const colleges = Array.from(new Set(list.map(m => m.college).filter(Boolean))).sort();
-  const LEVELS = [['', '全部'], ['正式', '正式队员'], ['预备', '预备队员']];
+  // 身份标签按现有的人自动生成（2026-09-20 起名册显示所有身份，chips 只用来分组筛选）
+  const lvKey = m => (m.level || []).join('/') || '未分级';
+  const lvName = k => (k === '队员' ? '队员（普通）' : k);
+  const cnt = {};
+  all.forEach(m => { const k = lvKey(m); cnt[k] = (cnt[k] || 0) + 1; });
+  const CHIPS = [['', '全部']].concat(Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).map(k => [k, lvName(k)]));
 
-  if (state.rosterLevel) list = list.filter(m => (m.level || []).includes(state.rosterLevel));
+  if (state.rosterLevel) list = list.filter(m => lvKey(m) === state.rosterLevel);
   if (state.rosterCollege) list = list.filter(m => m.college === state.rosterCollege);
   if (state.rosterQ) {
     const q = state.rosterQ.toLowerCase();
@@ -923,15 +910,16 @@ function renderRoster() {
                          || (m.major || '').toLowerCase().includes(q));
   }
 
+  const chgTip = CHIPS.filter(c => c[0]).map(c => lvName(c[0]) + ' ' + cnt[c[0]]).join(' · ');
+
   return `
   <div class="sec-head"><h1>队员名册</h1>
-    <span class="tiny">正式队员 ${rosterList().filter(m => m.level.includes('正式')).length} 人 ·
-      预备队员 ${rosterList().filter(m => m.level.includes('预备')).length} 人 · 当前筛选 ${list.length} 人</span></div>
+    <span class="tiny">共 ${all.length} 人${chgTip ? '（' + chgTip + '）' : ''} · 当前筛选 ${list.length} 人</span></div>
 
   <div class="toolbar">
     <div class="chips">
-      ${LEVELS.map(([v, l]) => `<div class="chip ${state.rosterLevel === v ? 'active' : ''}" data-lvl="${esc(v)}">${esc(l)}
-        <span class="n">${v ? rosterList().filter(m => m.level.includes(v)).length : rosterList().length}</span></div>`).join('')}
+      ${CHIPS.map(([v, l]) => `<div class="chip ${state.rosterLevel === v ? 'active' : ''}" data-lvl="${esc(v)}">${esc(l)}
+        <span class="n">${v ? cnt[v] : all.length}</span></div>`).join('')}
     </div>
     <select id="rosterCollege" class="sel">
       <option value="">全部学院</option>
@@ -1141,9 +1129,10 @@ function renderManage() {
   const ros = BASE.roster || [];
   const hiddenSet = new Set(o.hidden);
   const addedList = (o.newMembers || []).filter(m => !state.mRosterQ || m.name.includes(state.mRosterQ));
+  // 名册里的人全都列出来（2026-09-20 起不再只列正式/预备）：没搜索时最多列 300 个，免得一次画太多
   const editList = addedList.map(m => Object.assign({}, m, { _isNew: true }))
     .concat(ros.filter(m => !hiddenSet.has(m.name)).filter(m => state.mRosterQ
-      ? m.name.includes(state.mRosterQ) : (m.level || []).some(l => l === '正式' || l === '预备')).slice(0, 60)
+      ? m.name.includes(state.mRosterQ) : true).slice(0, 300)
       .map(m => Object.assign({}, m, { _isNew: false })));
   const removed = ros.filter(m => hiddenSet.has(m.name));
   const added = o.results;
@@ -1369,7 +1358,7 @@ function renderManage() {
     </div>
     <div class="tiny" style="margin-bottom:12px">
       原始名册 ${ros.length} 人${(o.newMembers || []).length ? '，队长新增 ' + (o.newMembers || []).length + ' 人' : ''}
-      （展示版显示正式/预备的 ${rosterList().length} 人）。改完记得去「同步」发布。
+      （名册里显示 ${rosterList().length} 人，所有身份都显示）。改完记得去「同步」发布。
     </div>
 
     ${(LOCAL_OV && ((LOCAL_OV.newMembers || []).length + Object.keys(LOCAL_OV.memberEdits || {}).length)) ? `
@@ -1391,7 +1380,7 @@ function renderManage() {
         <div class="field"><label>专业</label><input id="nm_major" placeholder="例如 林学2101"></div>
         <div class="field"><label>年级</label><input id="nm_grade" placeholder="例如 2023" class="w60"></div>
         <div class="field"><label>身份</label>
-          <select id="nm_level"><option value="正式">正式</option><option value="预备">预备</option><option value="正式,预备">正式+预备</option></select></div>
+          <select id="nm_level"><option value="正式">正式</option><option value="预备">预备</option><option value="普通">普通（队员）</option><option value="正式,预备">正式+预备</option></select></div>
       </div>
       <button class="btn" id="btnAddMember" style="margin-top:8px">添加到名册</button>
       <span class="tiny" style="margin-left:10px">添加完点「同步我的修改到线上」，全队名册立刻多这个人</span>
@@ -1403,7 +1392,8 @@ function renderManage() {
       <div class="tiny" style="margin:8px 0">
         从 Excel / 微信表格里<b>复制几行直接粘到下面</b>（一行一个人）。列的默认顺序是
         <b>姓名、学院、专业、年级、性别、身份</b>；如果第一行是表头（含"姓名/学院/…"）会自动按表头认列。
-        也可以点右边按钮选一个 Excel / CSV 文件。身份那列填「正式」或「预备」，空着按「正式」算。
+        也可以点右边按钮选一个 Excel / CSV 文件。身份那列可填「正式 / 预备 / 普通 / 队员」，空着按「正式」算
+        （身份只是标注，名册里所有人都会显示）。
       </div>
       <textarea class="ta" id="nmBatch" rows="5" placeholder="张伟&#9;林学院&#9;林学2101&#9;2023&#9;男&#9;正式&#10;李娜&#9;园艺学院&#9;园艺2102&#9;2023&#9;女&#9;预备"></textarea>
       <div class="chips" style="margin-top:10px">
@@ -1417,7 +1407,7 @@ function renderManage() {
       <b>＋ 单独添加个人最好成绩（不用编一场比赛）</b>
       <div class="tiny" style="margin:8px 0">
         直接给某个队员记一条最好成绩（例如半马、全马、10 公里、3000 米）。它会出现在
-        「个人最好成绩」榜（只统计正式队员）和该队员的名册卡片上；加完点「同步我的修改到线上」即上线。
+        「个人最好成绩」榜（名册里的人都在里面）和该队员的名册卡片上；加完点「同步我的修改到线上」即上线。
       </div>
       <div class="grid2" style="margin:10px 0 4px">
         <div class="field"><label>姓名 *</label><input id="pb_name" autocomplete="off" placeholder="直接输入姓名，例如 阿巴小洛"></div>
@@ -1502,8 +1492,12 @@ function renderManage() {
             <input ${k} data-mf="major" value="${esc(e.major != null ? e.major : (m.major || ''))}" placeholder="专业">
             <input ${k} data-mf="grade" value="${esc(e.grade != null ? e.grade : (m.grade || ''))}" placeholder="年级" class="w60">
             <select ${k} data-mf="level">
-              ${[['', '未分级'], ['正式', '正式'], ['预备', '预备'], ['正式,预备', '正式+预备']].map(([v, l]) =>
-                `<option value="${v}" ${(e.level ? e.level.join(',') : (m.level || []).join(',')) === v ? 'selected' : ''}>${l}</option>`).join('')}
+              ${(() => {
+                const curLv = (e.level ? e.level.join(',') : (m.level || []).join(','));
+                const OPTS = [['', '未分级'], ['正式', '正式'], ['预备', '预备'], ['普通', '普通'], ['队员', '队员'], ['正式,预备', '正式+预备']];
+                if (curLv && !OPTS.some(x => x[0] === curLv)) OPTS.push([curLv, curLv + '（保持原样）']);
+                return OPTS.map(([v, l]) => `<option value="${v}" ${curLv === v ? 'selected' : ''}>${l}</option>`).join('');
+              })()}
             </select>
             ${m._isNew
               ? '<button class="btn danger sm" data-muiddel="' + esc(m.uid || m.name) + '">删除</button>'
@@ -2228,10 +2222,10 @@ function renderMe() {
       <div class="field"><label>专业 / 班级</label><input id="me_major" value="${esc(d.major || '')}" placeholder="例如 林学 2301"></div>
       <div class="field"><label>年级</label><input id="me_grade" value="${esc(d.grade || '')}" placeholder="例如 2023"></div>
       <div class="field"><label>身份</label><select id="me_level">
-        ${[['', '未填（让队长核定）'], ['正式', '正式队员'], ['预备', '预备队员'], ['普通', '普通（队里的人，不进公开名册）']].map(([v, l]) =>
+        ${[['', '未填（让队长核定）'], ['正式', '正式队员'], ['预备', '预备队员'], ['普通', '普通（队里的队员）']].map(([v, l]) =>
           `<option value="${v}" ${dLv === v ? 'selected' : ''}>${l}</option>`).join('')}
       </select>
-      <div class="tiny" style="margin-top:4px">不确定就先留「未填」；正式/预备 会显示在公开名册里</div></div>
+      <div class="tiny" style="margin-top:4px">不确定就先留「未填」；身份只是标注，名册里所有人都会显示</div></div>
     </div>
 
     <h2 style="margin-top:6px">② 个人最好成绩（没有就填「无」）</h2>
@@ -2729,15 +2723,13 @@ async function applyMemberDoc(doc) {
     const v = String(doc[k] || '').trim();
     if (v && v !== '无') e[k] = v;
   });
-  // 身份（正式 / 预备 / 普通）：只在资料里写了有效身份时才改，空着不动（老的资料文件没有这一项）
+  // 身份（正式 / 预备 / 普通 / 队员）：只在资料里写了有效身份时才改，空着不动（老的资料文件没有这一项）
   const lvIn = normLevelOf(doc.level);
   let levelNote = '';
   if (lvIn && lvIn.length) {
     e.level = lvIn;
     levelNote = '，身份已设为「' + lvIn.join('/') + '」';
-    if (isVisibleLevel(lvIn) && !wasInRoster) {        // 本来不在公开名册里 → 这次明确设成正式/预备了
-      if (unhideMember(doc.name)) levelNote += '、已把他从「已移除」里放回名册';
-    }
+    // 2026-09-20 起名册显示所有身份：导入资料不再自动把人从「已移除」里放回来（要放回得手动点「↺ 恢复显示」）
   }
   // 照片：有令牌就直接传成仓库里的头像；没有就先存 dataURL（下次同步一起带上）
   let photoNote = '';
@@ -2824,12 +2816,12 @@ function renderSheetPreview() {
   const stOf = d => rosterStatus(d.name);
   const inRosterN = q.docs.filter(d => stOf(d).inRoster).length;
   const brandNewN = q.docs.filter(d => !stOf(d).inBase && !stOf(d).isNew).length;
-  const hiddenN = q.docs.filter(d => !stOf(d).inRoster && (stOf(d).inBase || stOf(d).isNew)).length;
+  const removedN = q.docs.filter(d => !stOf(d).inRoster && (stOf(d).inBase || stOf(d).isNew)).length;
   box.innerHTML = `
     <div class="notice" style="margin-top:12px">
       收集表里读到 <b>${q.docs.length}</b> 个人${q.skip.length ? '，跳过 ' + q.skip.length + ' 行' + (q.skip.length ? '（' + esc(q.skip.slice(0, 3).join('；')) + '）' : '') : ''}；
-      其中 <b>${inRosterN}</b> 位已经在公开名册里（只更新资料）、
-      <b>${brandNewN}</b> 位名册里没有（导入后作为新队员加入，身份按表里的「身份」列，没写就按「正式」）${hiddenN ? '、<b>' + hiddenN + '</b> 位本来就在原始名册里但身份不是正式/预备 —— 光导入资料<b>不会</b>让他出现在名册里，要去「数据管理 → 队员名册」把身份改成「正式」' : ''}。
+      其中 <b>${inRosterN}</b> 位已经在名册里（只更新资料）、
+      <b>${brandNewN}</b> 位名册里没有（导入后作为新队员加入，身份按表里的「身份」列，没写就按「正式」）${removedN ? '、<b>' + removedN + '</b> 位被列在「已移除显示」名单里 —— 资料和成绩会存好，但要显示得去「数据管理 → 队员名册」点他的「↺ 恢复显示」' : ''}。
     </div>
     <div class="tbl-wrap" style="max-height:240px;overflow:auto;margin-top:10px">
       <table class="tbl" style="min-width:auto">
@@ -2845,7 +2837,7 @@ function renderSheetPreview() {
             <td class="tiny">${pbs.length ? pbs.map(ev => esc(ev) + ' ' + esc(d.pb[ev])).join('、') : '（全填无）'}</td>
             <td>${mem.has(d.name) ? '<span class="tagbadge green">在</span>'
               : (stOf(d).inBase || stOf(d).isNew)
-                ? '<span class="tagbadge">原始身份「' + esc(((stOf(d).baseLevel || []).join('/') || '未填')) + '」→ 要改身份才显示</span>'
+                ? '<span class="tagbadge">在「已移除」名单里 → 要 ↺ 恢复显示</span>'
                 : '<span class="tagbadge">新增</span>'}</td></tr>`;
         }).join('')}</tbody>
       </table>
@@ -2859,7 +2851,7 @@ function renderSheetPreview() {
   if (no) no.onclick = () => { docSheetQueue = null; render(); };
   if (ok) ok.onclick = async () => {
     ok.disabled = true; ok.textContent = '导入中…';
-    let updated = 0, pbs = 0, joined = 0; const stillHidden = [];
+    let updated = 0, pbs = 0, joined = 0; const stillRemoved = [];
     for (const d of q.docs) {
       const st = rosterStatus(d.name);
       const lvS = normLevelOf(d.level);
@@ -2867,18 +2859,18 @@ function renderSheetPreview() {
       const r = await applyMemberDoc(d);
       if (!r) continue;
       pbs += r.pbs || 0;
-      if (st.inRoster || rosterStatus(d.name).inRoster) updated++;   // 表里写了「正式/预备」的，导入后就进名册了
+      if (st.inRoster || rosterStatus(d.name).inRoster) updated++;   // 已经在名册里 → 只更新资料
       else if (!st.inBase && !st.isNew) {          // 名册里完全没有 → 真把他加进名册（不然"新增"只是嘴上说说）
         addNewMemberSilently(d.name, { sex: d.sex, college: d.college, major: d.major,
           grade: d.grade, level: lvArr, note: '收集表导入' });
         joined++;
-      } else stillHidden.push(d.name);             // 身份写着「普通」（或没定）：不进公开名册
+      } else if (st.removed) stillRemoved.push(d.name);   // 在「已移除」名单里：资料存好，但要 ↺ 恢复显示才出现在名册
     }
     docSheetQueue = null;
-    const tail = stillHidden.length
-      ? ' ⚠️ ' + stillHidden.slice(0, 5).join('、') + (stillHidden.length > 5 ? ' 等 ' + stillHidden.length + ' 位' : '')
-        + ' 本来就在原始名册里、身份不是正式/预备，所以队员名册里还看不到他（他们的资料/成绩已经存好了）。' +
-        '去「数据管理 → 队员名册」搜名字，把「身份」改成「正式」就出现了。'
+    const tail = stillRemoved.length
+      ? ' ⚠️ ' + stillRemoved.slice(0, 5).join('、') + (stillRemoved.length > 5 ? ' 等 ' + stillRemoved.length + ' 位' : '')
+        + ' 被列在「已移除显示」名单里，所以名册里还看不到他（他们的资料/成绩已经存好了）。' +
+        '去「数据管理 → 队员名册」下面「已从名册移除」那一栏点他的「↺ 恢复显示」。'
       : '';
     toast('收集表导入完成：更新 ' + updated + ' 人、新加入名册 ' + joined + ' 人、最好成绩 ' + pbs + ' 条。'
       + tail + '记得点「同步我的修改到线上」。', tail ? 18000 : 12000);
@@ -2922,13 +2914,13 @@ function renderMemberDocPreview() {
   const st = rosterStatus(d.doc.name);
   const badge = st.inRoster ? '<span class="tagbadge green">在名册里</span>'
     : (st.inBase || st.isNew)
-      ? '<span class="tagbadge">原始名册里有他（身份「' + esc((st.baseLevel || []).join('/') || '未填') + '」）→ 公开名册里还看不到</span>'
+      ? '<span class="tagbadge">名册里有他，但在「已移除」名单里 → 要 ↺ 恢复显示才出现</span>'
       : '<span class="tagbadge">名册里没有 → 导入后新增一位</span>';
   const hint = st.inRoster ? '' : ('<div class="tiny" style="margin-top:6px;color:var(--wheat)">⚠️ ' + esc(rosterHint(d.doc.name)) + '</div>');
   const pbRows = Object.keys(d.doc.pb || {}).filter(k => d.doc.pb[k] && d.doc.pb[k] !== '无');
   const lvDoc = normLevelOf(d.doc.level);
   const lvTxt = (lvDoc && lvDoc.length)
-    ? esc(lvDoc.join('/')) + ((lvDoc.indexOf('正式') >= 0 || lvDoc.indexOf('预备') >= 0) ? '（会进公开名册）' : '（不进公开名册）')
+    ? esc(lvDoc.join('/'))
     : (d.doc.level ? esc(String(d.doc.level)) + '（看不懂 → 不改身份）' : '（没填 → 身份不动）');
   box.innerHTML = `
     <div class="notice" style="margin-top:12px">
@@ -2941,7 +2933,7 @@ function renderMemberDocPreview() {
     </div>
     <div class="chips" style="margin-top:10px">
       <button class="btn" id="btnDocApply">导入这份资料</button>
-      ${st.inRoster ? '' : '<button class="btn ghost sm" id="btnDocAddRoster">把他加入公开名册（身份=正式）</button>'}
+      ${st.inRoster ? '' : '<button class="btn ghost sm" id="btnDocAddRoster">把他加入名册（身份=正式）</button>'}
       <button class="btn flat sm" id="btnDocCancel">取消</button>
     </div>`;
   const a = $('#btnDocApply'), c2 = $('#btnDocCancel'), a2 = $('#btnDocAddRoster');
@@ -2962,7 +2954,7 @@ function renderMemberDocPreview() {
       addNewMemberSilently(d.doc.name, { sex: d.doc.sex, college: d.doc.college, major: d.doc.major,
         grade: d.doc.grade, level: ['正式'], note: '队员资料导入' });
     }
-    toast('已把「' + d.doc.name + '」加进公开名册（身份：正式）—— 记得点「同步我的修改到线上」', 11000);
+    toast('已把「' + d.doc.name + '」加进名册（身份：正式）—— 记得点「同步我的修改到线上」', 11000);
     render();
   };
   if (a) a.onclick = async () => {
@@ -3005,7 +2997,7 @@ function saveRosterEdits() {
     const base = (BASE.roster || []).find(m => m.name === n) || {};
     const out = Object.assign({}, edits[n] || {}, {
       college: f.college, major: f.major, grade: f.grade,
-      level: lvl.length ? lvl : (base.level || []).filter(x => x === '正式' || x === '预备'),
+      level: lvl,                                    // 选什么存什么（「未分级」= 空数组，不会再回退到原身份）
     });
     if (f.sex !== undefined) out.sex = f.sex;          // 性别也能补了
     edits[n] = out;
@@ -3069,7 +3061,7 @@ function saveRosterEdits() {
 const FILL_FIELDS = ['sex', 'college', 'major', 'grade'];
 let fillBatchRows = null;
 
-/** 名册（正式/预备）里信息不全的人 */
+/** 名册里信息不全的人（所有身份都算） */
 function lackInfoList() {
   return rosterList().filter(m => FILL_FIELDS.some(f => !String(m[f] || '').trim()));
 }
@@ -3309,7 +3301,7 @@ function exportDataTable() {
   d.members.slice().sort((a, b) => rank(a) - rank(b) || String(a.name).localeCompare(String(b.name), 'zh'))
     .forEach((m, i) => {
       const lv = m.level || [];
-      const pub = (lv.indexOf('正式') >= 0 || lv.indexOf('预备') >= 0) && !m._hidden;
+      const pub = !m._hidden;      // 名册显示所有身份（2026-09-20 起）：只要没被「移除」就是「是」
       const row = [i + 1, m.name || '', m.sex || '', m.college || '', m.major || '', m.grade || '',
                    lv.length ? lv.join('/') : '未分级', pub ? '是' : '否', (byName[m.name] || []).length, m._from || ''];
       d.events.forEach(e => {
@@ -3341,7 +3333,7 @@ function exportDataTable() {
     ['队员人数', d.members.length], ['成绩条数', d.records.length],
     [''],
     ['【队员总表】'],
-    ['· 可改：性别 / 学院 / 专业 / 年级 / 身份（身份填 正式 / 预备 / 普通；正式、预备 会显示在公开名册里，普通 = 队里的人但不进公开名册；留空 = 不进公开名册）'],
+    ['· 可改：性别 / 学院 / 专业 / 年级 / 身份（身份填 正式 / 预备 / 普通 / 队员，只是标注，名册里所有人都会显示；留空 = 显示成「未分级」）'],
     ['· 加新队员：最下面加一行，姓名必填；其他列能填就填'],
     ['· 不要改：序号 / 公开显示 / 成绩条数 / 各项目最好成绩（这些是自动算的）'],
     [''],
@@ -3353,7 +3345,7 @@ function exportDataTable() {
     ['· 千万不要改【编号】列，那是用来认这条成绩的'],
     [''],
     ['【规则】'],
-    ['· 个人最好成绩只统计正式队员；每场比赛的榜包含当时参赛的所有同学'],
+    ['· 个人最好成绩包含名册里的所有人；每场比赛的榜包含当时参赛的所有同学（含名册外的）'],
     ['· 某项目的最好成绩 = 该项目所有成绩里最快的一次，改完成绩会自动重算'],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa4), '说明');
@@ -3368,7 +3360,7 @@ function buildFixPlan(sheets) {
   (BASE.roster || []).forEach(m => { baseByName[m.name] = m; });
   (o.newMembers || []).forEach(m => { curNew[m.name] = m; });
   const plan = { memberFix: [], addMember: [], recFix: [], recHide: [], recDel: [], recAdd: [], recEdit: [], skip: [] };
-  // 返回 [] = 明确"不进公开名册"；返回 null = 这个值看不懂（例如「队员」），保持原样别动
+  // 返回 [] = 明确清空身份（显示成「未分级」）；返回 null = 这个值看不懂，保持原样别动
   const normLevel = normLevelOf;
   const sameLv = (a, b) => (a || []).slice().sort().join('/') === (b || []).slice().sort().join('/');
 
@@ -3925,8 +3917,8 @@ function bindManage() {
     const known = nameKnownToTeam(name);
     const inPbBoard = rosterList().some(m => m.name === name);
     if (!known && !confirm('名册里没有「' + name + '」这个人。\n\n姓名写错的话，这条成绩谁都不会看到。\n\n确定就用「' + name + '」记下这条吗？')) return;
-    if (known && !inPbBoard && !confirm('「' + name + '」在名册里，但身份不是「正式」。\n\n' +
-        '个人最好成绩榜只统计正式队员，所以这条成绩不会出现在榜上（名册卡片上也看不到）。\n\n仍然记下这条吗？')) return;
+    if (known && !inPbBoard && !confirm('「' + name + '」现在不在名册里（多半被列在「已移除显示」名单里）。\n\n' +
+        '他不在名册，所以这条成绩不会出现在最好成绩榜上。\n\n仍然记下这条吗？')) return;
     const l = ovLocal();
     l.pbAdded = l.pbAdded || [];
     l.pbAdded.push({ uid: pbUid(), name: name, event: event, sec: sec, fmt: fmtSec(sec),
@@ -3992,25 +3984,21 @@ function bindManage() {
       render();
     };
     const base = (BASE.roster || []).find(m => m.name === name);
-    const vis = base && (base.level || []).some(x => x === '正式' || x === '预备');
+    const inList = rosterList().some(m => m.name === name);   // 名册显示所有身份，只有在「已移除」里才不在
     const dupNew = l.newMembers.some(m => m.name === name);
     if (base || dupNew) {
       const box = $('#nmAddBox');
       const why = base
-        ? (vis
+        ? (inList
             ? '「' + name + '」已经在名册里了（' + esc(base.college || '未填学院') + '，身份 ' + esc((base.level || []).join('/') || '未分级') + '）。'
-            : '「' + name + '」<b>在原始名册里，但身份是「' + esc((base.level || []).join('/') || '未分级') + '」</b>，'
-              + '而展示版只显示「正式 / 预备」，所以他没出现在公开名册里 —— 不是没录进来，是身份没定。')
+            : '「' + name + '」名册里有，但被列在「已移除显示」名单里 → 往下找「已从名册移除」那一栏，'
+              + '点他的「↺ 恢复显示」就回来了（不用重新添加一个人）。')
         : '你已经加过一个叫「' + name + '」的人了（同名可以并存，确认不是同一个人就继续）。';
       if (box) {
         box.innerHTML = '<div class="notice" style="margin-top:12px">' + why
-          + ((base && !vis) ? '<br><br>👉 想让他出现在公开名册：点「搜出来改他的身份」，把那个人的「身份」改成 正式 或 预备，'
-                             + '再点「保存名册修改」（不用新加一个人，也不用同步两次）。' : '')
           + '<div class="chips" style="margin-top:10px">'
-          + ((base && !vis) ? '<button class="btn sm" id="btnNmFindIt">搜出来改他的身份</button>' : '')
           + '<button class="btn ghost sm" id="btnNmForce">是另一个人，仍然添加</button></div></div>';
-        const b1 = $('#btnNmFindIt'), b2 = $('#btnNmForce');
-        if (b1) b1.onclick = () => { state.mRosterQ = name; render(); };
+        const b2 = $('#btnNmForce');
         if (b2) b2.onclick = () => { am.dataset.force = '1'; am.click(); };
       }
       if (am.dataset.force !== '1') return;
@@ -5127,8 +5115,7 @@ function startAutoRefresh() {
   // 队员端：第一次来（本机没存过资料）直接停在「完善我的资料」，填过的人还是停在成绩上报
   if (MODE === 'report' && !h && !(meDraft().name || '').trim()) state.tab = 'me';
   await loadCloud(false);
-  const healed = healRosterHidden();          // 把"身份已升级但被「已移除」压着"的人放回名册
-  if (healed) setTimeout(() => toast('有 ' + healed + ' 位身份已改成正式/预备的人之前被「已移除」压着，已自动放回名册 —— 点一次「同步我的修改到线上」他们就会出现在公开名册里', 16000), 1500);
+  healRosterHidden();                         // 空函数（2026-09-20 起身份不影响显示，「已移除」只能手动恢复）
   await loadQueueCfg();
   if (MODE === 'captain' && loadCfgFromHash()) toast('已用链接里的账号自动填好，可以直接同步', 4000);
   render();

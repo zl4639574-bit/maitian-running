@@ -39,12 +39,15 @@
   function audit() {
     var cnt = scoresOf();
     var hiddenSet = new Set(ov().hidden || []);
+    // 2026-09-20 起：名册显示所有身份，成绩榜也认名册里的所有人
+    // → 「上不了榜」只可能是因为他压根不在名册里（名册外的同学只进单场榜）
+    var rosterSet = {};
+    try { (rosterList() || []).forEach(function (m) { rosterSet[m.name] = 1; }); } catch (e) {}
     var noOff = [], isRemoved = [];
     Object.keys(cnt).forEach(function (n) {
       var lv = effLevel(n) || [];
-      var official = lv.indexOf('正式') >= 0;       // 成绩榜只认「正式」
-      if (hiddenSet.has(n)) { isRemoved.push({ name: n, lv: lv, official: official }); return; }
-      if (!official) noOff.push({ name: n, lv: lv, vis: isVisibleLevel(lv) });
+      if (hiddenSet.has(n)) { isRemoved.push({ name: n, lv: lv }); return; }
+      if (!rosterSet[n]) noOff.push({ name: n, lv: lv, vis: isVisibleLevel(lv) });
     });
 
     var kc = {};                                    // 完全相同的成绩记了多次（同一份资料被反复通过）
@@ -74,16 +77,13 @@
     list = scoresOf()[n] || [];
     try { onBoard = (personalBests() || []).some(function (r) { return r.name === n; }); } catch (e) {}
 
-    var official = lv.indexOf('正式') >= 0;
     var known = st.inBase || st.isNew;
     var why = [];
     if (!known) why.push('名册里根本没有这个人 —— 先核对是不是名字写错了（写错会被当成另一个人）');
-    if (!official && known) why.push('身份不是「正式」（现在是「' + (lv.join('、') || '空') + '」）—— 成绩榜只统计正式队员，' +
-      (isVisibleLevel(lv) ? '他进得了公开名册，但成绩一条都上不了榜' : '他连公开名册都进不去'));
-    if (st.removed) why.push('被列在「已移除显示」名单里（身份够也照样不显示）');
+    if (known && st.removed) why.push('被列在「已移除显示」名单里 —— 名册里点他的「↺ 恢复显示」就回来了');
     if (!list.length && known) why.push('一条成绩记录都没有 —— 不是被封住了，是确实还没有成绩');
 
-    return { name: n, st: st, lv: lv, list: list, official: official, known: known,
+    return { name: n, st: st, lv: lv, list: list, known: known,
              onBoard: onBoard, why: why };
   }
 
@@ -110,19 +110,18 @@
 
     h.push('<div class="tiny" style="line-height:2">');
 
-    h.push('<div>' + ICON(a.noOff.length) + ' 有成绩却<b>上不了榜</b>的人：<b style="color:' +
+    h.push('<div>' + ICON(a.noOff.length) + ' 有成绩却<b>不在名册里</b>的人：<b style="color:' +
       (a.noOff.length ? 'var(--wheat)' : 'var(--green)') + '">' + a.noOff.length + '</b> 人' +
-      (a.noOff.length ? ' —— 身份不到「正式」，成绩榜一条都不显示' + link('noOff', '看名单') : '') + '</div>');
+      (a.noOff.length ? ' —— 他们只出现在单场榜，不进名册、也不进个人最好成绩榜' + link('noOff', '看名单') : '') + '</div>');
     if (V.open === 'noOff') {
       h.push(listLine(a.noOff, function (x) {
-        return esc(x.name) + '<span style="color:var(--t3)">（' + esc((x.lv || []).join('、') || '未填') +
-          (x.vis ? ' · 已在公开名册' : '') + '）</span>';
+        return esc(x.name) + '<span style="color:var(--t3)">（身份 ' + esc((x.lv || []).join('、') || '未填') + '）</span>';
       }, '没有'));
     }
 
-    h.push('<div>' + ICON(a.isRemoved.length) + ' 身份够、却被「<b>已移除显示</b>」挡着的：<b style="color:' +
+    h.push('<div>' + ICON(a.isRemoved.length) + ' 被「<b>已移除显示</b>」挡着的：<b style="color:' +
       (a.isRemoved.length ? 'var(--wheat)' : 'var(--green)') + '">' + a.isRemoved.length + '</b> 人' +
-      (a.isRemoved.length ? ' —— 名册里点「↺ 恢复显示」就能放回来' + link('removed', '看名单') : '') + '</div>');
+      (a.isRemoved.length ? ' —— 名册里点「↺ 恢复显示」就能放回来（这是现在名册里唯一会"看不到"的原因）' + link('removed', '看名单') : '') + '</div>');
     if (V.open === 'removed') {
       h.push(listLine(a.isRemoved, function (x) { return esc(x.name); }, '没有'));
     }
@@ -167,8 +166,8 @@
     L.push('<div>' + MARK(d.known) + ' 在名册里：<b>' + (d.known ? '是' : '否') + '</b>' +
       (d.st && d.st.isNew && !d.st.inBase ? '（队长新增）' : '') +
       (d.st && d.st.removed ? '，但被列在「已移除显示」名单里' : '') + '</div>');
-    L.push('<div>' + MARK(d.official) + ' 身份：<b>' + esc((d.lv || []).join('、') || '未填') + '</b>' +
-      (d.official ? '（成绩榜认这个身份）' : '（成绩榜<b>不</b>认，只认「正式」）') + '</div>');
+    L.push('<div>' + MARK(d.known) + ' 身份：<b>' + esc((d.lv || []).join('、') || '未填') + '</b>' +
+      '<span style="color:var(--t3)">（只是标注，不影响显示）</span></div>');
     L.push('<div>' + MARK(d.list.length > 0) + ' 成绩记录：<b>' + d.list.length + '</b> 条' +
       (d.list.length ? '（数据是有的）' : '') + '</div>');
     L.push('<div>' + MARK(d.onBoard) + ' 出现在成绩榜上：<b>' + (d.onBoard ? '是' : '否') + '</b></div>');
@@ -181,10 +180,14 @@
         '<b>一切正常</b> —— 他的成绩在榜上。如果页面上没看到，可能是浏览器缓存，刷新一下（成绩榜每 30 秒自己会查一次更新）。</div>');
     }
 
-    if (!d.official && d.known) {
+    if (!d.known) {
       L.push('<div class="tiny" style="margin-top:8px;color:var(--t2);line-height:1.9">' +
-        '<b>怎么改：</b>数据管理 → 队员名册 → 搜索框打「' + esc(d.name) + '」→ 把「身份」改成 <b>正式</b> → ' +
-        '保存名册修改 → 回到「同步」点一次「同步我的修改到线上」，等 1 分钟。</div>');
+        '<b>怎么改：</b>数据管理 → 队员名册 →「＋ 批量添加队员」把他加进名册 → 保存 → ' +
+        '回到「同步」点一次「同步我的修改到线上」，等 1 分钟。</div>');
+    } else if (d.st && d.st.removed) {
+      L.push('<div class="tiny" style="margin-top:8px;color:var(--t2);line-height:1.9">' +
+        '<b>怎么改：</b>数据管理 → 队员名册 → 往下「已从名册移除」那一栏点他的「↺ 恢复显示」→ ' +
+        '「同步我的修改到线上」，等 1 分钟。</div>');
     }
     L.push('</div>');
     return L.join('');
