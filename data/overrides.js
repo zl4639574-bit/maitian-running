@@ -885,6 +885,45 @@ window.TEAM_OVERRIDES = {
    "ts": 1789869533175,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmu963tmo_2_ry0w",
+   "name": "王涛",
+   "event": "4000米",
+   "sec": 870,
+   "fmt": "14:30",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "",
+   "ts": 1789869531840,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu963unr_3_tbsz",
+   "name": "姚语熙",
+   "event": "3000米",
+   "sec": 670,
+   "fmt": "11:10",
+   "date": "2026.05.23",
+   "meet": "春季场地测速",
+   "rank": "女子乙组第三名",
+   "ts": 1789869533175,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmu963unr_4_34cp",
+   "name": "姚语熙",
+   "event": "其他4km",
+   "sec": 1018,
+   "fmt": "16:58",
+   "date": "2026.09.19",
+   "meet": "2026.9.19高百选拔4km测速",
+   "rank": "女子组第一",
+   "ts": 1789869533175,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2573,5 +2612,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T01:58:57.024Z"
+ "updated": "2026-09-20T01:58:59.048Z"
 };
