@@ -613,8 +613,7 @@ window.TEAM_OVERRIDES = {
    "sex": "女",
    "college": "食品学院",
    "major": "营养2501",
-   "grade": "2024",
-   "photo": "images/avatars/mijkfl.jpg"
+   "grade": "2024"
   },
   "王尚": {
    "photo": "images/avatars/mk5pr.jpg"
@@ -631,6 +630,15 @@ window.TEAM_OVERRIDES = {
    "college": "资源环境学院",
    "major": "资环2402",
    "grade": "2024"
+  },
+  "穆彦情": {
+   "college": "风景园林艺术学院",
+   "major": "环设2201",
+   "grade": "2022",
+   "level": [
+    "正式"
+   ],
+   "sex": "女"
   }
  },
  "newMembers": [
@@ -2700,5 +2708,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T09:52:03.494Z"
+ "updated": "2026-09-20T09:52:46.477Z"
 };
