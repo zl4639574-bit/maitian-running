@@ -986,6 +986,58 @@ window.TEAM_OVERRIDES = {
    "ts": 1789897393122,
    "local": false,
    "published": true
+  },
+  {
+   "uid": "rmuap4x70_1_ita9",
+   "name": "穆芸欣",
+   "event": "5000米",
+   "sec": 1343,
+   "fmt": "22:23",
+   "date": "2026.09.20",
+   "meet": "自测",
+   "rank": "",
+   "ts": 1789961961996,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmuap4x70_2_2h2q",
+   "name": "穆芸欣",
+   "event": "3000米",
+   "sec": 745,
+   "fmt": "12:25",
+   "date": "2026.09.20",
+   "meet": "",
+   "rank": "",
+   "ts": 1789961961996,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmuap4x70_3_u5xa",
+   "name": "穆芸欣",
+   "event": "1500米",
+   "sec": 340,
+   "fmt": "5:40",
+   "date": "2026.09.20",
+   "meet": "",
+   "rank": "",
+   "ts": 1789961961996,
+   "local": false,
+   "published": true
+  },
+  {
+   "uid": "rmuap4x70_4_55yd",
+   "name": "穆芸欣",
+   "event": "800米",
+   "sec": 164,
+   "fmt": "2:44",
+   "date": "2026.09.20",
+   "meet": "",
+   "rank": "",
+   "ts": 1789961961996,
+   "local": false,
+   "published": true
   }
  ],
  "hiddenResults": [
@@ -2708,5 +2760,5 @@ window.TEAM_OVERRIDES = {
    "caption": "IMG_20260412_10423"
   }
  ],
- "updated": "2026-09-20T09:52:46.477Z"
+ "updated": "2026-09-21T03:39:22.995Z"
 };
